@@ -33,6 +33,7 @@ public:
 private:
 	SOCKET clientSocketFd;
 	char SendBuffer[BUFFER_SIZE];
+	int SendBufLen;//在设置buffer时同时设置，在发送buffer内容的时候使用
 	char RecvBuffer[BUFFER_SIZE*10];
 	int SetServerAddr(char* host, u_short port);
 	int CreateSocket();
@@ -97,15 +98,20 @@ int TFTPCLI::SetRequestBuffer(int op, int type, char* filename) {
 	}
 	SendBuffer[1] = op;
 	strcpy_s(SendBuffer +  OP_LEN, 500, filename);
-	int fLen = strlen(filename)+1;//求文件名长度
+	
+	int fLen = strlen(filename)+1;//求文件名串长度（包括结束符）
+	//设置type
 	if (type == MODE_OCTET) {
 		strcpy_s(SendBuffer + OP_LEN + fLen, BUFFER_SIZE, "octet");
+		SendBufLen = 20 + fLen;
 		return 0;
 	}
 	else {
 		strcpy_s(SendBuffer + OP_LEN + fLen, BUFFER_SIZE, "netascii");
+		SendBufLen = 20 + fLen;
 		return 0;
 	}
+	cout << "Error when generating Request!" << endl;
 	return -1;
 
 }
@@ -115,6 +121,7 @@ int TFTPCLI::SetAckBuffer(int blocknum) {
 	memset(SendBuffer, 0, sizeof(SendBuffer));
 	SendBuffer[1] = ACK;
 	SendBuffer[3] = blocknum;
+	SendBufLen = 10;
 	return 0;
 }
 
@@ -124,12 +131,13 @@ int TFTPCLI::SetErrorBuffer(int errcode,char* errmsg) {
 	SendBuffer[1] = TFTP_ERROR;
 	SendBuffer[3] = errcode;
 	strcpy(SendBuffer + 4, errmsg);
+	SendBufLen = 10 + strlen(errmsg);
 	return 0;
 }
 
 int TFTPCLI::SendBufferToServer() {
 	//将buffer的内容发送到远程服务器
-	int stat = sendto(clientSocketFd, SendBuffer, BUFFER_SIZE, 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
+	int stat = sendto(clientSocketFd, SendBuffer, SendBufLen, 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
 	int err = WSAGetLastError();
 	if (stat < 0) {
 		cout << "Error ocured while sending packet,code=" << err << endl;
