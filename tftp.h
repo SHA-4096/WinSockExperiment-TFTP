@@ -20,7 +20,9 @@ using namespace std;
 #define MODE_NETASCII 1
 #define RECV_LOOP_MAX 10
 #define TIMEOUT_SEC 10
-#define BUFFER_SIZE 500
+#define BUFFER_SIZE 560
+
+#define DataPakSize 512
 
 class TFTPCLI {
 public:
@@ -34,7 +36,8 @@ private:
 	SOCKET clientSocketFd;
 	char SendBuffer[BUFFER_SIZE];
 	int SendBufLen;//在设置buffer时同时设置，在发送buffer内容的时候使用
-	char RecvBuffer[BUFFER_SIZE*10];
+	char RecvBuffer[BUFFER_SIZE];
+	int RecvBufLen;
 	int SetServerAddr(char* host, u_short port);
 	int CreateSocket();
 	int SetRequestBuffer(int op, int type, char* filename);//设置BUFFER内容为请求报文
@@ -162,6 +165,7 @@ int TFTPCLI::RecvFromServer(){
 		cout << "Error ocured while receving packet,code=" << err << endl;
 		return -1;
 	}
+	RecvBufLen = stat;//获取接收到的报文长度
 	return 0;
 }
 
@@ -177,8 +181,14 @@ int TFTPCLI::GetFileFromRemote(char* host,char* filename,u_short port) {
 		int blocknum, errorcode;
 		switch (op) {
 		case DATA:
+			//通过检查收到的报文长度检查传输是否完成
+			if (RecvBufLen < DataPakSize) {
+				cout<<"Finished Receving Packet!";
+				return 0;
+			}
+
 			blocknum = RecvBuffer[3];
-			SetAckBuffer(blocknum);//发送第cnt个包的ACK
+			SetAckBuffer(blocknum);//设置ACK的blocknum
 			serverAddr.sin_port = recvAddr.sin_port;//设置目的端口为S-TID
 			break;
 		case TFTP_ERROR:
