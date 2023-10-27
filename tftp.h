@@ -144,8 +144,8 @@ int TFTPCLI::CloseSocket() {
 	return 0;
 }
 
-int TFTPCLI::RecvFromServer()
-{
+int TFTPCLI::RecvFromServer(){
+	//从server获取数据，出错返回-1，否则返回0
 	memset(SendBuffer, 0, sizeof(SendBuffer));//清空buffer
 	int addrlen = sizeof(recvAddr);
 	int stat = recvfrom(clientSocketFd, RecvBuffer, sizeof(RecvBuffer),0, (struct sockaddr*)&recvAddr, &addrlen);
@@ -154,7 +154,6 @@ int TFTPCLI::RecvFromServer()
 		cout << "Error ocured while receving packet,code=" << err << endl;
 		return -1;
 	}
-
 	return 0;
 }
 
@@ -164,11 +163,22 @@ int TFTPCLI::GetFileFromRemote(char* host,char* filename,u_short port) {
 	SetServerAddr(host, port);
 	SetRequestBuffer(READ_REQUEST, MODE_NETASCII, filename);
 	SendBufferToServer();
-	int cnt = 1;
 	for (;;) {
-		RecvFromServer();
-		SetAckBuffer(cnt);//发送第cnt个包的ACK
-		cnt++;
+		RecvFromServer();//从server获取数据
+		int op = RecvBuffer[1];
+		int blocknum, errorcode;
+		switch (op) {
+		case DATA:
+			blocknum = RecvBuffer[3];
+			SetAckBuffer(blocknum);//发送第cnt个包的ACK
+			serverAddr.sin_port = recvAddr.sin_port;//设置目的端口为S-TID
+			break;
+		case TFTP_ERROR:
+			errorcode = RecvBuffer[3];
+			break;
+		}
+
+
 		SendBufferToServer();
 	}
 	CloseSocket();
