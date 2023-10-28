@@ -4,7 +4,7 @@
 #include<iostream>
 #include<WS2tcpip.h>
 #include<iostream>
-
+#include<fstream>
 
 #pragma comment(lib,"ws2_32.lib")
 
@@ -39,6 +39,7 @@ private:
 	char RecvBuffer[BUFFER_SIZE];
 	int RecvBufLen;
 	int SetServerAddr(char* host, u_short port);
+	//socket操作相关
 	int CreateSocket();
 	int SetRequestBuffer(int op, int type, char* filename);//设置BUFFER内容为请求报文
 	int SetAckBuffer(int blocknum);
@@ -46,6 +47,10 @@ private:
 	int SendBufferToServer();
 	int RecvFromServer();
 	int CloseSocket();
+	//文件操作相关
+	ofstream FileS;
+	
+	
 };
 
 
@@ -92,11 +97,13 @@ int TFTPCLI::SetRequestBuffer(int op, int type, char* filename) {
 	memset(SendBuffer, 0, sizeof(SendBuffer));
 	if (op == READ_REQUEST) {
 		cout << "Downloading data:"
-			<< filename;
+			<< filename
+			<<endl;
 	}
 	else {
 		cout << "Uploading data:"
-			<< filename;
+			<< filename
+			<<endl;
 
 	}
 	SendBuffer[1] = op;
@@ -173,30 +180,47 @@ int TFTPCLI::RecvFromServer(){
 int TFTPCLI::GetFileFromRemote(char* host,char* filename,u_short port) {
 	CreateSocket();
 	SetServerAddr(host, port);
-	SetRequestBuffer(READ_REQUEST, MODE_NETASCII, filename);
+	SetRequestBuffer(READ_REQUEST, MODE_OCTET, filename);
 	SendBufferToServer();
+	//创建新文件
+	FileS.open(filename, ios::out|ios::binary);
+	FileS.close();
+	//主循环
+	int blocknum, errorcode, prevBlocknum;
+	prevBlocknum = 0;
 	for (;;) {
 		RecvFromServer();//从server获取数据
 		int op = RecvBuffer[1];
-		int blocknum, errorcode;
+		
 		switch (op) {
 		case DATA:
 			//通过检查收到的报文长度检查传输是否完成
+			
+			//设置报文
+			blocknum = RecvBuffer[3];
+			cout << "Got Block " << blocknum << endl;
+			serverAddr.sin_port = recvAddr.sin_port;//设置目的端口为S-TID
+			SetAckBuffer(blocknum);//设置ACK的blocknum
+			//写入文件
+			if (prevBlocknum == blocknum - 1) {
+				cout << "Wrote Block " << blocknum << endl;
+				FileS.open(filename, ios::out | ios::app | ios::binary);
+				FileS.write(RecvBuffer + 4, RecvBufLen-4);
+				FileS.close();//TODO 或许之后可以加个文件锁啥的
+				prevBlocknum = blocknum;
+				
+			}
 			if (RecvBufLen < DataPakSize) {
-				cout<<"Finished Receving Packet!";
+				cout << "Finished Receving Packet!";
 				return 0;
 			}
-
-			blocknum = RecvBuffer[3];
-			SetAckBuffer(blocknum);//设置ACK的blocknum
-			serverAddr.sin_port = recvAddr.sin_port;//设置目的端口为S-TID
 			break;
 		case TFTP_ERROR:
 			errorcode = RecvBuffer[3];
 			break;
 		}
 
-
+		Sleep(500);
 		SendBufferToServer();
 	}
 	CloseSocket();
