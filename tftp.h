@@ -42,6 +42,7 @@ private:
 	int SetServerAddr(char* host, u_short port);
 	int CreateSocket();
 	int SetRequestBuffer(int op, int type, char* filename);//设置BUFFER内容为请求报文
+	int SetDataBuffer(int blocknum);
 	int SetAckBuffer(int blocknum);
 	int SetErrorBuffer(int errcode,char* errmsg);
 	int SendBufferToServer();
@@ -50,8 +51,6 @@ private:
 	//文件操作相关
 	ofstream RRQFileS;
 	ifstream WRQFileS;
-	//TFTP实现相关
-	int DataPacketBlock;
 	
 	
 };

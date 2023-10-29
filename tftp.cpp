@@ -19,7 +19,6 @@ int TFTPCLI::InitSocket() {
 	printf("Server's winsock initialized !\n");
 	return 0;
 }
-
 int TFTPCLI::SetServerAddr(char* host, u_short port) {
 	//设置远程服务器的地址以及端口
 	serverAddr.sin_family = AF_INET;
@@ -27,7 +26,6 @@ int TFTPCLI::SetServerAddr(char* host, u_short port) {
 	serverAddr.sin_port = htons(port);
 	return 0;
 }
-
 
 int TFTPCLI::CreateSocket() {
 	//创建socket
@@ -37,75 +35,6 @@ int TFTPCLI::CreateSocket() {
 		return -1;
 	}
 	cout << "Create Socket Success" << endl;
-	return 0;
-}
-
-int TFTPCLI::SetRequestBuffer(int op, int type, char* filename) {
-	//生成报文，保存到buffer中
-	memset(SendBuffer, 0, sizeof(SendBuffer));
-	SendBuffer[1] = op;//设置opcode
-	if (op == READ_REQUEST) {
-		cout << "Downloading data:"
-			<< filename
-			<< endl;
-	}
-	else if (op == WRITE_REQUEST) {
-		cout << "Uploading data:"
-			<< filename
-			<< endl;
-		DataPacketBlock = 0;
-		//打开文件，直到WRQ完成后关闭
-		WRQFileS.open(filename, ios::in | ios::binary);
-	}
-	else if (op == DATA) {
-		//设置blocknum
-		SendBuffer[3] = DataPacketBlock;
-		//读取数据并塞到packet里面,创建一个大小为DataPakSize的数据包
-		WRQFileS.read(SendBuffer + 4, DataPakSize - 4);
-		int count = WRQFileS.gcount();
-		SendBufLen = 4 + count;
-		return 0;
-	}
-	else {
-		cout << "Not a valid opcode!" << endl;
-		return -1;
-	}
-	//op=RRQ或WRQ的时候执行
-	strcpy_s(SendBuffer + OP_LEN, 500, filename);
-
-	int fLen = strlen(filename) + 1;//求文件名串长度（包括结束符）
-	//设置type
-	if (type == MODE_OCTET) {
-		strcpy_s(SendBuffer + OP_LEN + fLen, BUFFER_SIZE, "octet");
-		SendBufLen = 20 + fLen;
-		return 0;
-	}
-	else {
-		strcpy_s(SendBuffer + OP_LEN + fLen, BUFFER_SIZE, "netascii");
-		SendBufLen = 20 + fLen;
-		return 0;
-	}
-	cout << "Error when generating Request!" << endl;
-	return -1;
-
-}
-
-int TFTPCLI::SetAckBuffer(int blocknum) {
-	//设置Ack报文
-	memset(SendBuffer, 0, sizeof(SendBuffer));
-	SendBuffer[1] = ACK;
-	SendBuffer[3] = blocknum;
-	SendBufLen = 10;
-	return 0;
-}
-
-int TFTPCLI::SetErrorBuffer(int errcode, char* errmsg) {
-	//设置Error报文
-	memset(SendBuffer, 0, sizeof(SendBuffer));
-	SendBuffer[1] = TFTP_ERROR;
-	SendBuffer[3] = errcode;
-	strcpy(SendBuffer + 4, errmsg);
-	SendBufLen = 10 + strlen(errmsg);
 	return 0;
 }
 
@@ -198,7 +127,7 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port) {
 			break;
 		}
 
-		//Sleep(1000);
+		Sleep(100);
 		SendBufferToServer();
 	}
 	CloseSocket();
@@ -209,12 +138,15 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port) {
 	SetServerAddr(host, port);
 	SetRequestBuffer(WRITE_REQUEST, MODE_OCTET, filename);
 	SendBufferToServer();
+	int dataPacketBlock = 0,pakStatus=0;//pakStatus标记当前数据包是否为最后一个
 	for (;;) {
 		int stat = RecvFromServer();//从server获取数据
-		if(stat == 1){
-			//接收到了RST消息
-			CloseSocket();
+		if(stat == 1 || pakStatus == 1){
+			//接收到了RST消息或者数据包发送完毕
 			cout << "Finished Uploading Data" << endl;
+			//TODO 等待最后的ACK，否则重传
+			CloseSocket();
+			WRQFileS.close();
 			return 0;
 		}
 		int op = RecvBuffer[1];
@@ -222,10 +154,11 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port) {
 		case ACK:
 			cout << "Got ACK for block" << int(RecvBuffer[3])<<endl;
 			serverAddr.sin_port = recvAddr.sin_port;//设置目的端口为S-TID
-			if (RecvBuffer[3] == DataPacketBlock) {
+			if (RecvBuffer[3] == dataPacketBlock) {
 				//收到了上一个包的ACK则继续发送
-				DataPacketBlock++;
-				SetRequestBuffer(DATA, MODE_OCTET, filename);
+				dataPacketBlock++;
+				pakStatus = SetDataBuffer(dataPacketBlock);
+
 			}
 			else {
 				//收到了无效的ACK，直接跳过
@@ -233,10 +166,11 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port) {
 			}
 			break;
 		case TFTP_ERROR:
-			
+			cout << "Server reported Error!" << endl;
+			return -1;
 			break;
 		}
-		Sleep(50);
+		//Sleep(500);
 		SendBufferToServer();
 	}
 }
