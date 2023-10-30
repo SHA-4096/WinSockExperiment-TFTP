@@ -75,7 +75,7 @@ int TFTPCLI::SetDataBuffer(int blocknum) {
 	int count = WRQFileS.gcount();
 	
 	SendBufLen = 4 + count;
-	if (count < DataPakSize - 4) {
+	if (count ==  0) {
 		return 1;
 	}
 	return 0;

@@ -201,14 +201,7 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port) {
 			return -1;
 		}
 
-		if(pakStatus == 1){
-			//数据包发送完毕
-			cout << "Finished Uploading Data" << endl;
-			//TODO 等待最后的ACK，否则重传
-			CloseSocket();
-			WRQFileS.close();
-			return 0;
-		}
+		
 		int op = RecvBuffer[1];
 		switch (op) {
 		case ACK:
@@ -229,6 +222,15 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port) {
 			cout << "Server reported Error!" << endl;
 			return -1;
 			break;
+		}
+
+		if (pakStatus == 1) {
+			//数据包发送完毕
+			cout << "Finished Uploading Data" << endl;
+			//TODO 等待最后的ACK，否则重传
+			CloseSocket();
+			WRQFileS.close();
+			return 0;
 		}
 		//Sleep(500);
 		SendBufferToServer();
