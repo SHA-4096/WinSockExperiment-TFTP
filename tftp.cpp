@@ -128,6 +128,9 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port) {
 				cout << "Failed to receive packet,retrying " << retries << endl;
 				retries++;
 			}
+			else {
+				break;
+			}
 		}
 		if (retries == MAX_RETRIES) {
 			cout << "Failed after " << MAX_RETRIES << " retries, exiting" << endl;
@@ -188,6 +191,9 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port) {
 			if (state < 0) {
 				cout << "Failed to receive packet,retrying " << retries << endl;
 				retries++;
+			}
+			else {
+				break;
 			}
 		}
 		if (retries == MAX_RETRIES) {
