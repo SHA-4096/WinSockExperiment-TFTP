@@ -83,7 +83,7 @@ int TFTPCLI::CloseSocket() {
 /// <returns>正常接收：0；接收到RST：1；其他错误：-1</returns>
 int TFTPCLI::RecvFromServer() {
 	//从server获取数据，出错返回-1，否则返回0
-	memset(SendBuffer, 0, sizeof(SendBuffer));//清空buffer
+	memset(RecvBuffer, 0, sizeof(RecvBuffer));//清空buffer
 	int addrlen = sizeof(recvAddr);
 	int bytesrcv = recvfrom(clientSocketFd, RecvBuffer, sizeof(RecvBuffer), 0, (struct sockaddr*)&recvAddr, &addrlen);
 	int err = WSAGetLastError();
@@ -126,9 +126,13 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port) {
 			int state = RecvFromServer();//从server获取数据
 			if (state < 0) {
 				cout << "Failed to receive packet,retrying " << retries << endl;
+				SendBufferToServer();//出错则重传
 				retries++;
 			}
-			else {
+			else if (state == 1) {
+				//服务端已经重置连接了
+				return -1;
+			}else {
 				break;
 			}
 		}
@@ -168,7 +172,7 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port) {
 			break;
 		}
 
-		Sleep(100);
+		//Sleep(100);
 		SendBufferToServer();
 	}
 	CloseSocket();
@@ -182,6 +186,8 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port) {
 	SetServerAddr(host, port);
 	SetRequestBuffer(WRITE_REQUEST, MODE_OCTET, filename);
 	SendBufferToServer();
+	bool firstResp = false;//标记是否为第一次回应，是的话检查TID
+
 	int dataPacketBlock = 0,pakStatus=0;//pakStatus标记当前数据包是否为最后一个
 	for (;;) {
 		//超时重传机制
@@ -190,9 +196,13 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port) {
 			int state = RecvFromServer();//从server获取数据
 			if (state < 0) {
 				cout << "Failed to receive packet,retrying " << retries << endl;
+				SendBufferToServer();//出错则重传
 				retries++;
 			}
-			else {
+			else if (state == 1) {
+				//服务端已经重置连接了
+				return -1;
+			}else {
 				break;
 			}
 		}
@@ -219,7 +229,10 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port) {
 			}
 			break;
 		case TFTP_ERROR:
-			cout << "Server reported Error!" << endl;
+			cout << "Server reported Error!" 
+				<<"code="
+				<<int(RecvBuffer[3])
+				<< endl;
 			return -1;
 			break;
 		}

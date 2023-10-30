@@ -66,6 +66,7 @@ int TFTPCLI::SetErrorBuffer(int errcode, char* errmsg) {
 /// <param name="blocknum"></param>
 /// <returns>正常数据包：0；终止数据包：1</returns>
 int TFTPCLI::SetDataBuffer(int blocknum) {
+	memset(SendBuffer, 0, sizeof(SendBuffer));
 	//设置opcode
 	SendBuffer[1] = DATA;
 	//设置blocknum

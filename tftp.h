@@ -48,7 +48,6 @@ private:
 	int SetAckBuffer(int blocknum);
 	int SetErrorBuffer(int errcode,char* errmsg);
 	int SendBufferToServer();
-	
 	int RecvFromServer();
 	int CloseSocket();
 	//文件操作相关
