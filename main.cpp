@@ -6,7 +6,7 @@
 int main() {
 	TFTPCLI* cli = new(TFTPCLI);
 	cli->InitSocket();
-	char host[20] = "10.11.71.255";
+	char host[20] = "10.16.201.174";
 	char filename[20] = "EUPL-EN-111.pdf";
 //	char filename[20] = "test.txt";
 	u_short port = 69;

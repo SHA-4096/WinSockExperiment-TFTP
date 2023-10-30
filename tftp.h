@@ -21,8 +21,9 @@ using namespace std;
 #define RECV_LOOP_MAX 10
 #define TIMEOUT_SEC 10
 #define BUFFER_SIZE 560
-
 #define DataPakSize 516
+
+#define MAX_RETRIES 10 //设置最大重传次数为10
 
 class TFTPCLI {
 public:
@@ -42,10 +43,12 @@ private:
 	int SetServerAddr(char* host, u_short port);
 	int CreateSocket();
 	int SetRequestBuffer(int op, int type, char* filename);//设置BUFFER内容为请求报文
+	int SetSocketTimeout(int* sendTimeout, int* recvTimeout);
 	int SetDataBuffer(int blocknum);
 	int SetAckBuffer(int blocknum);
 	int SetErrorBuffer(int errcode,char* errmsg);
 	int SendBufferToServer();
+	
 	int RecvFromServer();
 	int CloseSocket();
 	//文件操作相关

@@ -38,11 +38,33 @@ int TFTPCLI::CreateSocket() {
 	return 0;
 }
 
+/// <summary>
+/// 按毫秒设置发送和接收超时
+/// </summary>
+/// <param name="sendTimeout"></param>
+/// <param name="recvTimeout"></param>
+/// <returns></returns>
+int TFTPCLI::SetSocketTimeout(int* sendTimeout, int* recvTimeout) {
+
+	//设置发送超时
+	if (SOCKET_ERROR == setsockopt(clientSocketFd, SOL_SOCKET, SO_SNDTIMEO, (char*)sendTimeout, sizeof(int)))
+	{
+		fprintf(stderr, "Set SO_SNDTIMEO error !\n");
+	}
+
+	//设置接收超时
+	if (SOCKET_ERROR == setsockopt(clientSocketFd, SOL_SOCKET, SO_RCVTIMEO, (char*)recvTimeout, sizeof(int)))
+	{
+		fprintf(stderr, "Set SO_RCVTIMEO error !\n");
+	}
+	return 0;
+}
+
 int TFTPCLI::SendBufferToServer() {
 	//将buffer的内容发送到远程服务器
-	int stat = sendto(clientSocketFd, SendBuffer, SendBufLen, 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
+	int bytesSent = sendto(clientSocketFd, SendBuffer, SendBufLen, 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
 	int err = WSAGetLastError();
-	if (stat < 0) {
+	if (bytesSent < 0) {
 		cout << "Error ocured while sending packet,code=" << err << endl;
 		return -1;
 	}
@@ -63,17 +85,17 @@ int TFTPCLI::RecvFromServer() {
 	//从server获取数据，出错返回-1，否则返回0
 	memset(SendBuffer, 0, sizeof(SendBuffer));//清空buffer
 	int addrlen = sizeof(recvAddr);
-	int stat = recvfrom(clientSocketFd, RecvBuffer, sizeof(RecvBuffer), 0, (struct sockaddr*)&recvAddr, &addrlen);
+	int bytesrcv = recvfrom(clientSocketFd, RecvBuffer, sizeof(RecvBuffer), 0, (struct sockaddr*)&recvAddr, &addrlen);
 	int err = WSAGetLastError();
-	if (stat < 0) {
+	if (bytesrcv < 0) {
 		if (err == 10054) {
 			cout << "Got RST from server" << endl;
 			return 1;
 		}
-		cout << "Error ocured while receving packet,code=" << err << endl;
+		cout << "Error ocured while receving packet/server timed out,code=" << err << endl;
 		return -1;
 	}
-	RecvBufLen = stat;//获取接收到的报文长度
+	RecvBufLen = bytesrcv;//获取接收到的报文长度
 	return 0;
 }
 
@@ -85,7 +107,9 @@ int TFTPCLI::RecvFromServer() {
 /// <param name="port">目标端口</param>
 /// <returns>0:success !0:fail</returns>
 int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port) {
-	CreateSocket();
+	CreateSocket();//创建socket
+	int timeout = 1000;//设置socket超时时间
+	SetSocketTimeout(&timeout,&timeout );
 	SetServerAddr(host, port);
 	SetRequestBuffer(READ_REQUEST, MODE_OCTET, filename);
 	SendBufferToServer();
@@ -96,7 +120,21 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port) {
 	int blocknum, errorcode, prevBlocknum;
 	prevBlocknum = 0;
 	for (;;) {
-		RecvFromServer();//从server获取数据
+		//超时重传机制
+		int retries = 0;
+		while (retries < MAX_RETRIES) {
+			int state = RecvFromServer();//从server获取数据
+			if (state < 0) {
+				cout << "Failed to receive packet,retrying " << retries << endl;
+				retries++;
+			}
+		}
+		if (retries == MAX_RETRIES) {
+			cout << "Failed after " << MAX_RETRIES << " retries, exiting" << endl;
+			return -1;
+		}
+
+		//成功接收到数据包后执行
 		int op = RecvBuffer[1];
 
 		switch (op) {
@@ -135,14 +173,30 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port) {
 
 int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port) {
 	CreateSocket();
+	int timeout = 1000;//设置socket超时时间
+	SetSocketTimeout(&timeout, &timeout);
+
 	SetServerAddr(host, port);
 	SetRequestBuffer(WRITE_REQUEST, MODE_OCTET, filename);
 	SendBufferToServer();
 	int dataPacketBlock = 0,pakStatus=0;//pakStatus标记当前数据包是否为最后一个
 	for (;;) {
-		int stat = RecvFromServer();//从server获取数据
-		if(stat == 1 || pakStatus == 1){
-			//接收到了RST消息或者数据包发送完毕
+		//超时重传机制
+		int retries = 0;
+		while (retries < MAX_RETRIES) {
+			int state = RecvFromServer();//从server获取数据
+			if (state < 0) {
+				cout << "Failed to receive packet,retrying " << retries << endl;
+				retries++;
+			}
+		}
+		if (retries == MAX_RETRIES) {
+			cout << "Failed after " << MAX_RETRIES << " retries, exiting" << endl;
+			return -1;
+		}
+
+		if(pakStatus == 1){
+			//数据包发送完毕
 			cout << "Finished Uploading Data" << endl;
 			//TODO 等待最后的ACK，否则重传
 			CloseSocket();
