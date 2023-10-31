@@ -289,10 +289,6 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) 
 		}
 		//Sleep(500);
 		SendBufferToServer();
-		cout << "Current Speed:"
-			<< GetSpeed() 
-			<<" Bytes/s"
-			<< endl;
 	}
 }
 
