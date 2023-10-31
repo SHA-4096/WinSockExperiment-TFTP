@@ -9,19 +9,35 @@ int TFTPCLI::SetRequestBuffer(int op, int type, char* filename) {
 		cout << "Downloading data:"
 			<< filename
 			<< endl;
+		//打开文件，直到WRQ完成后关闭
+		switch (type) {
+		case MODE_OCTET:
+			RRQFileS.open(filename, ios::in | ios::binary);
+			break;
+		case MODE_NETASCII:
+			RRQFileS.open(filename, ios::in);
+			break;
+		}
 	}
 	else if (op == WRITE_REQUEST) {
 		cout << "Uploading data:"
 			<< filename
 			<< endl;
 		//打开文件，直到WRQ完成后关闭
-		WRQFileS.open(filename, ios::in | ios::binary);
+		switch (type) {
+		case MODE_OCTET:
+			WRQFileS.open(filename, ios::in | ios::binary);
+			break;
+		case MODE_NETASCII:
+			WRQFileS.open(filename, ios::in);
+			break;
+		}
+
 	}
 	else {
 		cout << "Not a valid opcode!" << endl;
 		return -1;
 	}
-	//op=RRQ或WRQ的时候执行
 	strcpy_s(SendBuffer + OP_LEN, 500, filename);
 
 	int fLen = strlen(filename) + 1;//求文件名串长度（包括结束符）

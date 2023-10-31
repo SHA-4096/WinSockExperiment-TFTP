@@ -31,8 +31,8 @@ public:
 	struct sockaddr_in serverAddr;
 	struct sockaddr_in recvAddr;//用来存储接收信息的来源
 	int InitSocket();
-	int GetFileFromRemote(char* host, char* filename, u_short port);
-	int PutFileToRemote(char* host, char* filename, u_short port);
+	int GetFileFromRemote(char* host, char* filename, u_short port,int mode);
+	int PutFileToRemote(char* host, char* filename, u_short port, int mode);
 private:
 	SOCKET clientSocketFd;
 	char SendBuffer[BUFFER_SIZE];
@@ -53,6 +53,5 @@ private:
 	//文件操作相关
 	ofstream RRQFileS;
 	ifstream WRQFileS;
-	
-	
+	 
 };

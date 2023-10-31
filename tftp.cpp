@@ -106,16 +106,13 @@ int TFTPCLI::RecvFromServer() {
 /// <param name="filename">要获取的文件名</param>
 /// <param name="port">目标端口</param>
 /// <returns>0:success !0:fail</returns>
-int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port) {
+int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode) {
 	CreateSocket();//创建socket
 	int timeout = 1000;//设置socket超时时间
 	SetSocketTimeout(&timeout,&timeout );
 	SetServerAddr(host, port);
-	SetRequestBuffer(READ_REQUEST, MODE_OCTET, filename);
+	SetRequestBuffer(READ_REQUEST, mode, filename);
 	SendBufferToServer();
-	//创建新文件
-	RRQFileS.open(filename, ios::out | ios::binary);
-	RRQFileS.close();
 	//主循环
 	int blocknum, errorcode, prevBlocknum;
 	prevBlocknum = 0;
@@ -156,14 +153,15 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port) {
 			//写入文件
 			if (prevBlocknum == blocknum - 1) {
 				cout << "Wrote Block " << blocknum << endl;
-				RRQFileS.open(filename, ios::out | ios::app | ios::binary);
 				RRQFileS.write(RecvBuffer + 4, RecvBufLen - 4);
-				RRQFileS.close();//TODO 或许之后可以加个文件锁啥的
 				prevBlocknum = blocknum;
 
 			}
 			if (RecvBufLen < DataPakSize) {
 				cout << "Finished Receving Packet!"<<endl;
+				SendBufferToServer();//发送ACK
+				RRQFileS.close();//关闭文件
+				CloseSocket();//关闭连接
 				return 0;
 			}
 			break;
@@ -178,13 +176,13 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port) {
 	CloseSocket();
 }
 
-int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port) {
+int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) {
 	CreateSocket();
 	int timeout = 1000;//设置socket超时时间
 	SetSocketTimeout(&timeout, &timeout);
 
 	SetServerAddr(host, port);
-	SetRequestBuffer(WRITE_REQUEST, MODE_OCTET, filename);
+	SetRequestBuffer(WRITE_REQUEST, mode, filename);
 	SendBufferToServer();
 	bool firstResp = false;//标记是否为第一次回应，是的话检查TID
 
