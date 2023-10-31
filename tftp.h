@@ -32,6 +32,7 @@ public:
 	WSADATA wsaData;
 	struct sockaddr_in serverAddr;
 	int InitSocket();
+	int InitLog(char filename[]);
 	int GetFileFromRemote(char* host, char* filename, u_short port,int mode);
 	int PutFileToRemote(char* host, char* filename, u_short port, int mode);
 	double GetSpeed();
@@ -64,5 +65,14 @@ private:
 	DWORD TransmitSpeed;
 	int SetCurrentTime();
 	int CalcSpeed();
+
+	//日志相关
+	fstream LogFileS;
+	char MsgBuf[BUFFER_SIZE];
+	int LogFatal(char* msg);
+	int LogInfo(char* msg);
+	int LogWarn(char* msg);
+	time_t LogTimeObj;
+	
 	 
 };
