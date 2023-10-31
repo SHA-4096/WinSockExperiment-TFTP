@@ -12,10 +12,10 @@ int TFTPCLI::SetRequestBuffer(int op, int type, char* filename) {
 		//打开文件，直到WRQ完成后关闭
 		switch (type) {
 		case MODE_OCTET:
-			RRQFileS.open(filename, ios::in | ios::binary);
+			RRQFileS.open(filename, ios::out | ios::binary);
 			break;
 		case MODE_NETASCII:
-			RRQFileS.open(filename, ios::in);
+			RRQFileS.open(filename, ios::out);
 			break;
 		}
 	}
@@ -23,7 +23,7 @@ int TFTPCLI::SetRequestBuffer(int op, int type, char* filename) {
 		cout << "Uploading data:"
 			<< filename
 			<< endl;
-		//打开文件，直到WRQ完成后关闭
+		//打开文件，直到RRQ完成后关闭
 		switch (type) {
 		case MODE_OCTET:
 			WRQFileS.open(filename, ios::in | ios::binary);

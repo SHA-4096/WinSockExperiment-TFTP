@@ -96,6 +96,7 @@ int TFTPCLI::RecvFromServer() {
 		return -1;
 	}
 	RecvBufLen = bytesrcv;//获取接收到的报文长度
+	
 	return 0;
 }
 
@@ -153,6 +154,14 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 			//写入文件
 			if (prevBlocknum == blocknum - 1) {
 				cout << "Wrote Block " << blocknum << endl;
+				//计算速度并重置计时器
+				CalcSpeed();
+				SetCurrentTime();
+				//输出速度
+				cout << "Current Speed:"
+					<< GetSpeed()
+					<< " Bytes/s"
+					<< endl;
 				RRQFileS.write(RecvBuffer + 4, RecvBufLen - 4);
 				prevBlocknum = blocknum;
 
@@ -172,6 +181,7 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 
 		//Sleep(100);
 		SendBufferToServer();
+		
 	}
 	CloseSocket();
 }
@@ -219,7 +229,14 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) 
 				//收到了上一个包的ACK则继续发送
 				dataPacketBlock++;
 				pakStatus = SetDataBuffer(dataPacketBlock);
-
+				//计算速度并重置计时器
+				CalcSpeed();
+				SetCurrentTime();
+				//输出速度
+				cout << "Current Speed:"
+					<< GetSpeed()
+					<< " Bytes/s"
+					<< endl;
 			}
 			else {
 				//收到了无效的ACK，直接跳过
@@ -245,5 +262,37 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) 
 		}
 		//Sleep(500);
 		SendBufferToServer();
+		cout << "Current Speed:"
+			<< GetSpeed() 
+			<<" Bytes/s"
+			<< endl;
 	}
+}
+
+/// <summary>
+/// 设置当前的传输速度,单位为字节
+/// </summary>
+/// <returns>成功返回0</returns>
+int TFTPCLI::CalcSpeed() {
+	if (LastPacketSentTime == 0) {
+		return 0;
+	}
+	else {
+		TransmitSpeed = double(DataPakSize - 4) / (double(GetTickCount() - LastPacketSentTime)/1000.00);
+		return 0;
+	}
+}
+
+/// <summary>
+/// 设置计时开始点
+/// </summary>
+/// <returns></returns>
+int TFTPCLI::SetCurrentTime() {
+	// 获取系统启动时间的毫秒级时间戳
+	LastPacketSentTime = GetTickCount();
+	return 0;
+}
+
+double TFTPCLI::GetSpeed() {
+	return TransmitSpeed;
 }
