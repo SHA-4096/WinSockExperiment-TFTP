@@ -7,7 +7,7 @@
 #include<fstream>
 #include<time.h>
 #include<Windows.h>
-
+#include<chrono>
 #pragma comment(lib,"ws2_32.lib")
 
 using namespace std;
@@ -61,8 +61,8 @@ private:
 	ifstream WRQFileS;
 
 	//传输信息相关
-	double LastPacketSentTime;//用来记录传输速度
-	DWORD TransmitSpeed;
+	std::chrono::steady_clock::time_point LastPacketSentTime;//用来记录传输速度
+	double TransmitSpeed;
 	int SetCurrentTime();
 	int CalcSpeed();
 

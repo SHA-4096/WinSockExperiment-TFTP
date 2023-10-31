@@ -44,12 +44,12 @@ int TFTPCLI::SetRequestBuffer(int op, int type, char* filename) {
 	//…Ë÷√type
 	if (type == MODE_OCTET) {
 		strcpy_s(SendBuffer + OP_LEN + fLen, BUFFER_SIZE, "octet");
-		SendBufLen = 20 + fLen;
+		SendBufLen = 8 + fLen;
 		return 0;
 	}
 	else {
 		strcpy_s(SendBuffer + OP_LEN + fLen, BUFFER_SIZE, "netascii");
-		SendBufLen = 20 + fLen;
+		SendBufLen = 11 + fLen;
 		return 0;
 	}
 	cout << "Error when generating Request!" << endl;

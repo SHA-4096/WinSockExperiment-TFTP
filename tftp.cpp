@@ -297,13 +297,10 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) 
 /// </summary>
 /// <returns>成功返回0</returns>
 int TFTPCLI::CalcSpeed() {
-	if (LastPacketSentTime == 0) {
+		auto end = chrono::steady_clock::now();
+		auto last = chrono::duration_cast<chrono::microseconds>(end - LastPacketSentTime);
+		TransmitSpeed = double(DataPakSize - 4) / double(last.count() / 1000000.00);
 		return 0;
-	}
-	else {
-		TransmitSpeed = double(DataPakSize - 4) / (double(GetTickCount() - LastPacketSentTime)/1000.00);
-		return 0;
-	}
 }
 
 /// <summary>
@@ -311,8 +308,8 @@ int TFTPCLI::CalcSpeed() {
 /// </summary>
 /// <returns></returns>
 int TFTPCLI::SetCurrentTime() {
-	// 获取系统启动时间的毫秒级时间戳
-	LastPacketSentTime = GetTickCount();
+	// 获取微秒级时间戳
+	LastPacketSentTime = chrono::steady_clock::now();
 	return 0;
 }
 
@@ -327,19 +324,21 @@ int TFTPCLI::InitLog(char filename[]) {
 }
 
 int TFTPCLI::LogInfo(char* msg) {
-	LogFileS << "[INFO]"
-		<<"["
-		<< time(&LogTimeObj)
-		<<"]"
+	time(&LogTimeObj);
+	LogFileS << "[Info]"
+		<< "["
+		<< ctime(&LogTimeObj)
+		<< "]"
 		<< msg
 		<< endl;
 	return 0;
 }
 
 int TFTPCLI::LogWarn(char* msg) {
+	time(&LogTimeObj);
 	LogFileS << "[Warn]"
 		<<"["
-		<< time(&LogTimeObj)
+		<< ctime(&LogTimeObj)
 		<<"]"
 		<< msg
 		<< endl;
@@ -347,10 +346,11 @@ int TFTPCLI::LogWarn(char* msg) {
 }
 
 int TFTPCLI::LogFatal(char* msg) {
+	time(&LogTimeObj);
 	LogFileS << "[Fatal]"
-		<<"["
-		<< time(&LogTimeObj)
-		<<"]"
+		<< "["
+		<< ctime(&LogTimeObj)
+		<< "]"
 		<< msg
 		<< endl;
 	return 0;
