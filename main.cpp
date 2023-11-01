@@ -23,13 +23,16 @@ int main() {
 	string input;
 	char filename[100];
 	string welcome = "Welcome to TFTP client,type 'help' for user instruction.\n";
-	string instruction = "====TFTP Client Instruction====\n"
-		"To Access Function, input the following:\n"
+	string instruction = "TFTP Client Instruction\n"
+		"To Access Function, input the following\n"
+		"=================================================\n"
 		"S : Set Server Infomation\n"
 		"R : Get a file from a remote server\n"
 		"W : Put file to a remote server\n"
 		"state : See the configuration of current client\n"
-		"help : Get help instructions\n";
+		"help : Get help instructions\n"
+		"exit : exit from the program\n"
+		"=================================================\n";
 	
 	cout << welcome<<endl;
 
@@ -57,6 +60,10 @@ int main() {
 			else {
 				cout << "Transfer Mode:OCTET\n";
 			}
+		}
+		else if (input == "exit") {
+			cout << "Bye~" << endl;
+			break;
 		}
 		else if (input == "S") {
 			cout << "Input Server Address:";
