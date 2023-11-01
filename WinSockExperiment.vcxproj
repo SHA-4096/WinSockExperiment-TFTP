@@ -128,7 +128,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="set-buffer.cpp" />
     <ClCompile Include="tftp.cpp" />
   </ItemGroup>
   <ItemGroup>
