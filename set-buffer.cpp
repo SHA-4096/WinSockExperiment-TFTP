@@ -61,7 +61,8 @@ int TFTPCLI::SetAckBuffer(int blocknum) {
 	//设置Ack报文
 	memset(SendBuffer, 0, sizeof(SendBuffer));
 	SendBuffer[1] = ACK;
-	SendBuffer[3] = blocknum;
+	SendBuffer[3] = blocknum%256;
+	SendBuffer[2] = blocknum / 256;
 	SendBufLen = 10;
 	return 0;
 }
@@ -87,6 +88,7 @@ int TFTPCLI::SetDataBuffer(int blocknum) {
 	SendBuffer[1] = DATA;
 	//设置blocknum
 	SendBuffer[3] = blocknum;
+	SendBuffer[2] = blocknum/256;
 	//读取数据并塞到packet里面,创建一个大小为DataPakSize的数据包
 	WRQFileS.read(SendBuffer + 4, DataPakSize - 4);
 	int count = WRQFileS.gcount();

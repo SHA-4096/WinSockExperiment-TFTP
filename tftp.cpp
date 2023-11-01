@@ -122,7 +122,8 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 	SetRequestBuffer(READ_REQUEST, mode, filename);
 	SendBufferToServer();
 	//主循环
-	int blocknum, errorcode, prevBlocknum;
+	int blocknum;
+	int errorcode, prevBlocknum;
 	prevBlocknum = 0;
 	for (;;) {
 		//超时重传机制
@@ -158,14 +159,15 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 			//通过检查收到的报文长度检查传输是否完成
 
 			//设置报文
-			blocknum = RecvBuffer[3];
+			blocknum = (u_short(RecvBuffer[3]) % 256) + (u_short(RecvBuffer[2]) % 256) * 256;
+			//cout <<"======" << int(RecvBuffer[2])<<endl;
 			cout << "Got Block " << blocknum << endl;
 			sprintf(MsgBuf, "Got Block %d", blocknum);
 			LogInfo(MsgBuf);
 			serverAddr.sin_port = recvAddr.sin_port;//设置目的端口为S-TID
 			SetAckBuffer(blocknum);//设置ACK的blocknum
 			//写入文件
-			if (prevBlocknum == blocknum - 1) {
+			if (prevBlocknum == blocknum-1) {
 				cout << "Wrote Block " << blocknum << endl;
 				sprintf(MsgBuf,"Wrote Block %d", blocknum);
 				LogInfo(MsgBuf);
@@ -240,15 +242,17 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) 
 			return -1;
 		}
 
-		
+		int blocknum;
 		int op = RecvBuffer[1];
 		switch (op) {
 		case ACK:
-			cout << "Got ACK for block" << int(RecvBuffer[3])<<endl;
-			sprintf(MsgBuf, "Got ACK for block %d", int(RecvBuffer[3]));
+			blocknum = (u_short(RecvBuffer[3]) % 256) + (u_short(RecvBuffer[2]) % 256) * 256;
+			//TODO 修复报文超过128个的情况
+			cout << "Got ACK for block" << blocknum << endl;
+			sprintf(MsgBuf, "Got ACK for block %d", blocknum);
 			LogInfo(MsgBuf);
 			serverAddr.sin_port = recvAddr.sin_port;//设置目的端口为S-TID
-			if (RecvBuffer[3] == dataPacketBlock) {
+			if (blocknum == dataPacketBlock) {
 				//收到了上一个包的ACK则继续发送
 				dataPacketBlock++;
 				pakStatus = SetDataBuffer(dataPacketBlock);
