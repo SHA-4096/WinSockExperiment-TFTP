@@ -157,7 +157,7 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 		switch (op) {
 		case DATA:
 			//通过检查收到的报文长度检查传输是否完成
-			//TODO 修复日志输出blocknum格式的问题
+
 			//设置报文
 			blocknum = (u_short(RecvBuffer[3]) % 256) + (u_short(RecvBuffer[2]) % 256) * 256;
 			//cout <<"======" << int(RecvBuffer[2])<<endl;
