@@ -3,7 +3,7 @@
 
 
 int TFTPCLI::InitSocket() {
-	//³õÊ¼»¯socket
+	//åˆå§‹åŒ–socket
 	int nRC = WSAStartup(0x0101, &wsaData);
 	if (nRC)
 	{
@@ -20,7 +20,7 @@ int TFTPCLI::InitSocket() {
 	return 0;
 }
 int TFTPCLI::SetServerAddr(char* host, u_short port) {
-	//ÉèÖÃÔ¶³Ì·şÎñÆ÷µÄµØÖ·ÒÔ¼°¶Ë¿Ú
+	//è®¾ç½®è¿œç¨‹æœåŠ¡å™¨çš„åœ°å€ä»¥åŠç«¯å£
 	serverAddr.sin_family = AF_INET;
 	serverAddr.sin_addr.s_addr = inet_addr(host);
 	serverAddr.sin_port = htons(port);
@@ -28,7 +28,7 @@ int TFTPCLI::SetServerAddr(char* host, u_short port) {
 }
 
 int TFTPCLI::CreateSocket() {
-	//´´½¨socket
+	//åˆ›å»ºsocket
 	clientSocketFd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (clientSocketFd < 0) {
 		perror("Create Socket Failed");
@@ -39,20 +39,20 @@ int TFTPCLI::CreateSocket() {
 }
 
 /// <summary>
-/// °´ºÁÃëÉèÖÃ·¢ËÍºÍ½ÓÊÕ³¬Ê±
+/// æŒ‰æ¯«ç§’è®¾ç½®å‘é€å’Œæ¥æ”¶è¶…æ—¶
 /// </summary>
 /// <param name="sendTimeout"></param>
 /// <param name="recvTimeout"></param>
 /// <returns></returns>
 int TFTPCLI::SetSocketTimeout(int* sendTimeout, int* recvTimeout) {
 
-	//ÉèÖÃ·¢ËÍ³¬Ê±
+	//è®¾ç½®å‘é€è¶…æ—¶
 	if (SOCKET_ERROR == setsockopt(clientSocketFd, SOL_SOCKET, SO_SNDTIMEO, (char*)sendTimeout, sizeof(int)))
 	{
 		fprintf(stderr, "Set SO_SNDTIMEO error !\n");
 	}
 
-	//ÉèÖÃ½ÓÊÕ³¬Ê±
+	//è®¾ç½®æ¥æ”¶è¶…æ—¶
 	if (SOCKET_ERROR == setsockopt(clientSocketFd, SOL_SOCKET, SO_RCVTIMEO, (char*)recvTimeout, sizeof(int)))
 	{
 		fprintf(stderr, "Set SO_RCVTIMEO error !\n");
@@ -61,7 +61,7 @@ int TFTPCLI::SetSocketTimeout(int* sendTimeout, int* recvTimeout) {
 }
 
 int TFTPCLI::SendBufferToServer() {
-	//½«bufferµÄÄÚÈİ·¢ËÍµ½Ô¶³Ì·şÎñÆ÷
+	//å°†bufferçš„å†…å®¹å‘é€åˆ°è¿œç¨‹æœåŠ¡å™¨
 	int bytesSent = sendto(clientSocketFd, SendBuffer, SendBufLen, 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
 	int err = WSAGetLastError();
 	if (bytesSent < 0) {
@@ -74,18 +74,18 @@ int TFTPCLI::SendBufferToServer() {
 }
 
 int TFTPCLI::CloseSocket() {
-	//¹Ø±Õsocket
+	//å…³é—­socket
 	closesocket(clientSocketFd);
 	return 0;
 }
 
 /// <summary>
-/// ´Óserver»ñÈ¡Êı¾İ
+/// ä»serverè·å–æ•°æ®
 /// </summary>
-/// <returns>Õı³£½ÓÊÕ£º0£»½ÓÊÕµ½RST£º1£»ÆäËû´íÎó£º-1</returns>
+/// <returns>æ­£å¸¸æ¥æ”¶ï¼š0ï¼›æ¥æ”¶åˆ°RSTï¼š1ï¼›å…¶ä»–é”™è¯¯ï¼š-1</returns>
 int TFTPCLI::RecvFromServer() {
-	//´Óserver»ñÈ¡Êı¾İ£¬³ö´í·µ»Ø-1£¬·ñÔò·µ»Ø0
-	memset(RecvBuffer, 0, sizeof(RecvBuffer));//Çå¿Õbuffer
+	//ä»serverè·å–æ•°æ®ï¼Œå‡ºé”™è¿”å›-1ï¼Œå¦åˆ™è¿”å›0
+	memset(RecvBuffer, 0, sizeof(RecvBuffer));//æ¸…ç©ºbuffer
 	int addrlen = sizeof(recvAddr);
 	int bytesrcv = recvfrom(clientSocketFd, RecvBuffer, sizeof(RecvBuffer), 0, (struct sockaddr*)&recvAddr, &addrlen);
 	int err = WSAGetLastError();
@@ -102,43 +102,43 @@ int TFTPCLI::RecvFromServer() {
 
 		return -1;
 	}
-	RecvBufLen = bytesrcv;//»ñÈ¡½ÓÊÕµ½µÄ±¨ÎÄ³¤¶È
+	RecvBufLen = bytesrcv;//è·å–æ¥æ”¶åˆ°çš„æŠ¥æ–‡é•¿åº¦
 	
 	return 0;
 }
 
 /// <summary>
-/// Ê¹ÓÃOctetÄ£Ê½´ÓÔ¶³Ì·şÎñÆ÷»ñÈ¡ÎÄ¼ş
+/// ä½¿ç”¨Octetæ¨¡å¼ä»è¿œç¨‹æœåŠ¡å™¨è·å–æ–‡ä»¶
 /// </summary>
-/// <param name="host">Ô¶³Ì·şÎñÆ÷µØÖ·</param>
-/// <param name="filename">Òª»ñÈ¡µÄÎÄ¼şÃû</param>
-/// <param name="port">Ä¿±ê¶Ë¿Ú</param>
+/// <param name="host">è¿œç¨‹æœåŠ¡å™¨åœ°å€</param>
+/// <param name="filename">è¦è·å–çš„æ–‡ä»¶å</param>
+/// <param name="port">ç›®æ ‡ç«¯å£</param>
 /// <returns>0:success !0:fail</returns>
 int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode) {
-	CreateSocket();//´´½¨socket
-	int timeout = 1000;//ÉèÖÃsocket³¬Ê±Ê±¼ä
+	CreateSocket();//åˆ›å»ºsocket
+	int timeout = 1000;//è®¾ç½®socketè¶…æ—¶æ—¶é—´
 	SetSocketTimeout(&timeout,&timeout );
 	SetServerAddr(host, port);
 	SetRequestBuffer(READ_REQUEST, mode, filename);
 	SendBufferToServer();
-	//Ö÷Ñ­»·
+	//ä¸»å¾ªç¯
 	int blocknum;
 	int errorcode, prevBlocknum;
 	prevBlocknum = 0;
 	for (;;) {
-		//³¬Ê±ÖØ´«»úÖÆ
+		//è¶…æ—¶é‡ä¼ æœºåˆ¶
 		int retries = 0;
 		while (retries < MAX_RETRIES) {
-			int state = RecvFromServer();//´Óserver»ñÈ¡Êı¾İ
+			int state = RecvFromServer();//ä»serverè·å–æ•°æ®
 			if (state < 0) {
 				cout << "Failed to receive packet,retrying " << retries << endl;
 				sprintf(MsgBuf,"Failed to receive packet,retrying %d\n", retries);
 				LogWarn(MsgBuf);
-				SendBufferToServer();//³ö´íÔòÖØ´«
+				SendBufferToServer();//å‡ºé”™åˆ™é‡ä¼ 
 				retries++;
 			}
 			else if (state == 1) {
-				//·şÎñ¶ËÒÑ¾­ÖØÖÃÁ¬½ÓÁË
+				//æœåŠ¡ç«¯å·²ç»é‡ç½®è¿æ¥äº†
 				return -1;
 			}else {
 				break;
@@ -151,32 +151,32 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 			return -1;
 		}
 
-		//³É¹¦½ÓÊÕµ½Êı¾İ°üºóÖ´ĞĞ
+		//æˆåŠŸæ¥æ”¶åˆ°æ•°æ®åŒ…åæ‰§è¡Œ
 		int op = RecvBuffer[1];
 
 		switch (op) {
 		case DATA:
-			//Í¨¹ı¼ì²éÊÕµ½µÄ±¨ÎÄ³¤¶È¼ì²é´«ÊäÊÇ·ñÍê³É
-			//TODO ĞŞ¸´ÈÕÖ¾Êä³öblocknum¸ñÊ½µÄÎÊÌâ
-			//ÉèÖÃ±¨ÎÄ
+			//é€šè¿‡æ£€æŸ¥æ”¶åˆ°çš„æŠ¥æ–‡é•¿åº¦æ£€æŸ¥ä¼ è¾“æ˜¯å¦å®Œæˆ
+			//TODO ä¿®å¤æ—¥å¿—è¾“å‡ºblocknumæ ¼å¼çš„é—®é¢˜
+			//è®¾ç½®æŠ¥æ–‡
 			blocknum = (u_short(RecvBuffer[3]) % 256) + (u_short(RecvBuffer[2]) % 256) * 256;
 			//cout <<"======" << int(RecvBuffer[2])<<endl;
 			//cout << "Got Block " << blocknum << endl;
-			sprintf(MsgBuf, "Got Block %d", blocknum+((prevBlocknum+1)/65535)*65535);
+			sprintf(MsgBuf, "Got Block %d", blocknum);
 			LogInfo(MsgBuf);
-			serverAddr.sin_port = recvAddr.sin_port;//ÉèÖÃÄ¿µÄ¶Ë¿ÚÎªS-TID
-			SetAckBuffer(blocknum);//ÉèÖÃACKµÄblocknum
-			//Ğ´ÈëÎÄ¼ş
+			serverAddr.sin_port = recvAddr.sin_port;//è®¾ç½®ç›®çš„ç«¯å£ä¸ºS-TID
+			SetAckBuffer(blocknum);//è®¾ç½®ACKçš„blocknum
+			//å†™å…¥æ–‡ä»¶
 			if (prevBlocknum%65535 == (blocknum+65534)%65535) {
 				//cout << "Wrote Block " << blocknum << endl;
-				sprintf(MsgBuf,"Wrote Block %d", blocknum + ((prevBlocknum+1) / 65535)*65535);
+				sprintf(MsgBuf,"Wrote Block %d", blocknum) ;
 				LogInfo(MsgBuf);
-				//¼ÆËãËÙ¶È²¢ÖØÖÃ¼ÆÊ±Æ÷
+				//è®¡ç®—é€Ÿåº¦å¹¶é‡ç½®è®¡æ—¶å™¨
 				CalcSpeed();
 				SetCurrentTime();
-				//Êä³öËÙ¶È
+				//è¾“å‡ºé€Ÿåº¦
 				if (!(blocknum % 1000) || GetSpeed() < SPEED_THRESHHOLD) {
-					//¿ØÖÆÊä³öËÙ¶ÈµÄÆµÂÊ
+					//æ§åˆ¶è¾“å‡ºé€Ÿåº¦çš„é¢‘ç‡
 					system("cls");
 					printf("Current Speed:%lf Bytes/s\n", GetSpeed());
 				}
@@ -185,16 +185,16 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 					<< " Bytes/s"
 					<< endl;*/
 				RRQFileS.write(RecvBuffer + 4, RecvBufLen - 4);
-				prevBlocknum = blocknum;
+				prevBlocknum = blocknum ;
 
 			}
 			if (RecvBufLen < DataPakSize) {
 				cout << "Finished Receving Packet!"<<endl;
 				sprintf(MsgBuf, "Finished Receving Packet!");
 				LogInfo(MsgBuf);
-				SendBufferToServer();//·¢ËÍACK
-				RRQFileS.close();//¹Ø±ÕÎÄ¼ş
-				CloseSocket();//¹Ø±ÕÁ¬½Ó
+				SendBufferToServer();//å‘é€ACK
+				RRQFileS.close();//å…³é—­æ–‡ä»¶
+				CloseSocket();//å…³é—­è¿æ¥
 				return 0;
 			}
 			break;
@@ -212,29 +212,29 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 
 int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) {
 	CreateSocket();
-	int timeout = 1000;//ÉèÖÃsocket³¬Ê±Ê±¼ä
+	int timeout = 1000;//è®¾ç½®socketè¶…æ—¶æ—¶é—´
 	SetSocketTimeout(&timeout, &timeout);
 
 	SetServerAddr(host, port);
 	SetRequestBuffer(WRITE_REQUEST, mode, filename);
 	SendBufferToServer();
-	bool firstResp = false;//±ê¼ÇÊÇ·ñÎªµÚÒ»´Î»ØÓ¦£¬ÊÇµÄ»°¼ì²éTID
+	bool firstResp = false;//æ ‡è®°æ˜¯å¦ä¸ºç¬¬ä¸€æ¬¡å›åº”ï¼Œæ˜¯çš„è¯æ£€æŸ¥TID
 
-	int dataPacketBlock = 0,pakStatus=0;//pakStatus±ê¼Çµ±Ç°Êı¾İ°üÊÇ·ñÎª×îºóÒ»¸ö
+	int dataPacketBlock = 0,pakStatus=0;//pakStatusæ ‡è®°å½“å‰æ•°æ®åŒ…æ˜¯å¦ä¸ºæœ€åä¸€ä¸ª
 	for (;;) {
-		//³¬Ê±ÖØ´«»úÖÆ
+		//è¶…æ—¶é‡ä¼ æœºåˆ¶
 		int retries = 0;
 		while (retries < MAX_RETRIES) {
-			int state = RecvFromServer();//´Óserver»ñÈ¡Êı¾İ
+			int state = RecvFromServer();//ä»serverè·å–æ•°æ®
 			if (state < 0) {
 				cout << "Failed to receive packet,retrying " << retries << endl;
 				sprintf(MsgBuf, "Failed to receive packet,retrying %d\n", retries);
 				LogWarn(MsgBuf);
-				SendBufferToServer();//³ö´íÔòÖØ´«
+				SendBufferToServer();//å‡ºé”™åˆ™é‡ä¼ 
 				retries++;
 			}
 			else if (state == 1) {
-				//·şÎñ¶ËÒÑ¾­ÖØÖÃÁ¬½ÓÁË
+				//æœåŠ¡ç«¯å·²ç»é‡ç½®è¿æ¥äº†
 				return -1;
 			}else {
 				break;
@@ -252,21 +252,21 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) 
 		switch (op) {
 		case ACK:
 			blocknum = (u_short(RecvBuffer[3]) % 256) + (u_short(RecvBuffer[2]) % 256) * 256;
-			//TODO ĞŞ¸´±¨ÎÄ³¬¹ı128¸öµÄÇé¿ö Done
+			//TODO ä¿®å¤æŠ¥æ–‡è¶…è¿‡128ä¸ªçš„æƒ…å†µ Done
 			//cout << "Got ACK for block" << blocknum << endl;
 			sprintf(MsgBuf, "Got ACK for block %d", blocknum + (dataPacketBlock / 65535) * 65535);
 			LogInfo(MsgBuf);
-			serverAddr.sin_port = recvAddr.sin_port;//ÉèÖÃÄ¿µÄ¶Ë¿ÚÎªS-TID
+			serverAddr.sin_port = recvAddr.sin_port;//è®¾ç½®ç›®çš„ç«¯å£ä¸ºS-TID
 			if (blocknum% 65535 == dataPacketBlock% 65535) {
-				//ÊÕµ½ÁËÉÏÒ»¸ö°üµÄACKÔò¼ÌĞø·¢ËÍ
+				//æ”¶åˆ°äº†ä¸Šä¸€ä¸ªåŒ…çš„ACKåˆ™ç»§ç»­å‘é€
 				dataPacketBlock++;
 				pakStatus = SetDataBuffer(dataPacketBlock);
-				//¼ÆËãËÙ¶È²¢ÖØÖÃ¼ÆÊ±Æ÷
+				//è®¡ç®—é€Ÿåº¦å¹¶é‡ç½®è®¡æ—¶å™¨
 				CalcSpeed();
 				SetCurrentTime();
-				//Êä³öËÙ¶È
+				//è¾“å‡ºé€Ÿåº¦
 				if (!(blocknum % 1000)||GetSpeed()<SPEED_THRESHHOLD) {
-					//¿ØÖÆÊä³öËÙ¶ÈµÄÆµÂÊ
+					//æ§åˆ¶è¾“å‡ºé€Ÿåº¦çš„é¢‘ç‡
 					system("cls");
 					printf("Current Speed:%lf Bytes/s\n", GetSpeed());
 				}
@@ -277,7 +277,7 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) 
 					<< endl;*/
 			}
 			else {
-				//ÊÕµ½ÁËÎŞĞ§µÄACK£¬Ö±½ÓÌø¹ı
+				//æ”¶åˆ°äº†æ— æ•ˆçš„ACKï¼Œç›´æ¥è·³è¿‡
 				continue;
 			}
 			break;
@@ -293,11 +293,11 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) 
 		}
 
 		if (pakStatus == 1) {
-			//Êı¾İ°ü·¢ËÍÍê±Ï
+			//æ•°æ®åŒ…å‘é€å®Œæ¯•
 			cout << "Finished Uploading Data" << endl;
 			sprintf(MsgBuf, "Finished Uploading Data", retries);
 			LogInfo(MsgBuf);
-			//TODO µÈ´ı×îºóµÄACK£¬·ñÔòÖØ´«
+			//TODO ç­‰å¾…æœ€åçš„ACKï¼Œå¦åˆ™é‡ä¼ 
 			CloseSocket();
 			WRQFileS.close();
 			return 0;
@@ -308,9 +308,9 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) 
 }
 
 /// <summary>
-/// ÉèÖÃµ±Ç°µÄ´«ÊäËÙ¶È,µ¥Î»Îª×Ö½Ú
+/// è®¾ç½®å½“å‰çš„ä¼ è¾“é€Ÿåº¦,å•ä½ä¸ºå­—èŠ‚
 /// </summary>
-/// <returns>³É¹¦·µ»Ø0</returns>
+/// <returns>æˆåŠŸè¿”å›0</returns>
 int TFTPCLI::CalcSpeed() {
 		auto end = chrono::steady_clock::now();
 		auto last = chrono::duration_cast<chrono::microseconds>(end - LastPacketSentTime);
@@ -319,11 +319,11 @@ int TFTPCLI::CalcSpeed() {
 }
 
 /// <summary>
-/// ÉèÖÃ¼ÆÊ±¿ªÊ¼µã
+/// è®¾ç½®è®¡æ—¶å¼€å§‹ç‚¹
 /// </summary>
 /// <returns></returns>
 int TFTPCLI::SetCurrentTime() {
-	// »ñÈ¡Î¢Ãë¼¶Ê±¼ä´Á
+	// è·å–å¾®ç§’çº§æ—¶é—´æˆ³
 	LastPacketSentTime = chrono::steady_clock::now();
 	return 0;
 }
@@ -334,7 +334,7 @@ double TFTPCLI::GetSpeed() {
 
 
 int TFTPCLI::InitLog(char filename[]) {
-	LogFileS.open(filename, ios::out);//´ò¿ªÎÄ¼ş
+	LogFileS.open(filename, ios::out);//æ‰“å¼€æ–‡ä»¶
 	return 0;
 }
 
@@ -342,12 +342,12 @@ int TFTPCLI::LogInfo(char* msg) {
 	time(&LogTimeObj);
 	char* time = ctime(&LogTimeObj);
 	time[strlen(time) - 1] = 0;
-	LogFileS << "[Info]"
+	/*LogFileS << "[Info]"
 		<< "["
 		<< time
 		<< "]"
 		<< msg
-		<< endl;
+		<< endl;*/
 	return 0;
 }
 
@@ -378,14 +378,14 @@ int TFTPCLI::LogFatal(char* msg) {
 }
 
 int TFTPCLI::SetRequestBuffer(int op, int type, char* filename) {
-	//Éú³É±¨ÎÄ£¬±£´æµ½bufferÖĞ
+	//ç”ŸæˆæŠ¥æ–‡ï¼Œä¿å­˜åˆ°bufferä¸­
 	memset(SendBuffer, 0, sizeof(SendBuffer));
-	SendBuffer[1] = op;//ÉèÖÃopcode
+	SendBuffer[1] = op;//è®¾ç½®opcode
 	if (op == READ_REQUEST) {
 		cout << "Downloading data:"
 			<< filename
 			<< endl;
-		//´ò¿ªÎÄ¼ş£¬Ö±µ½WRQÍê³Éºó¹Ø±Õ
+		//æ‰“å¼€æ–‡ä»¶ï¼Œç›´åˆ°WRQå®Œæˆåå…³é—­
 		switch (type) {
 		case MODE_OCTET:
 			RRQFileS.open(filename, ios::out | ios::binary);
@@ -399,7 +399,7 @@ int TFTPCLI::SetRequestBuffer(int op, int type, char* filename) {
 		cout << "Uploading data:"
 			<< filename
 			<< endl;
-		//´ò¿ªÎÄ¼ş£¬Ö±µ½RRQÍê³Éºó¹Ø±Õ
+		//æ‰“å¼€æ–‡ä»¶ï¼Œç›´åˆ°RRQå®Œæˆåå…³é—­
 		switch (type) {
 		case MODE_OCTET:
 			WRQFileS.open(filename, ios::in | ios::binary);
@@ -416,8 +416,8 @@ int TFTPCLI::SetRequestBuffer(int op, int type, char* filename) {
 	}
 	strcpy_s(SendBuffer + OP_LEN, 500, filename);
 
-	int fLen = strlen(filename) + 1;//ÇóÎÄ¼şÃû´®³¤¶È£¨°üÀ¨½áÊø·û£©
-	//ÉèÖÃtype
+	int fLen = strlen(filename) + 1;//æ±‚æ–‡ä»¶åä¸²é•¿åº¦ï¼ˆåŒ…æ‹¬ç»“æŸç¬¦ï¼‰
+	//è®¾ç½®type
 	if (type == MODE_OCTET) {
 		strcpy_s(SendBuffer + OP_LEN + fLen, BUFFER_SIZE, "octet");
 		SendBufLen = 8 + fLen;
@@ -434,7 +434,7 @@ int TFTPCLI::SetRequestBuffer(int op, int type, char* filename) {
 }
 
 int TFTPCLI::SetAckBuffer(int blocknum) {
-	//ÉèÖÃAck±¨ÎÄ
+	//è®¾ç½®AckæŠ¥æ–‡
 	memset(SendBuffer, 0, sizeof(SendBuffer));
 	SendBuffer[1] = ACK;
 	SendBuffer[3] = blocknum % 256;
@@ -444,7 +444,7 @@ int TFTPCLI::SetAckBuffer(int blocknum) {
 }
 
 int TFTPCLI::SetErrorBuffer(int errcode, char* errmsg) {
-	//ÉèÖÃError±¨ÎÄ
+	//è®¾ç½®ErroræŠ¥æ–‡
 	memset(SendBuffer, 0, sizeof(SendBuffer));
 	SendBuffer[1] = TFTP_ERROR;
 	SendBuffer[3] = errcode;
@@ -457,15 +457,15 @@ int TFTPCLI::SetErrorBuffer(int errcode, char* errmsg) {
 /// 
 /// </summary>
 /// <param name="blocknum"></param>
-/// <returns>Õı³£Êı¾İ°ü£º0£»ÖÕÖ¹Êı¾İ°ü£º1</returns>
+/// <returns>æ­£å¸¸æ•°æ®åŒ…ï¼š0ï¼›ç»ˆæ­¢æ•°æ®åŒ…ï¼š1</returns>
 int TFTPCLI::SetDataBuffer(int blocknum) {
 	memset(SendBuffer, 0, sizeof(SendBuffer));
-	//ÉèÖÃopcode
+	//è®¾ç½®opcode
 	SendBuffer[1] = DATA;
-	//ÉèÖÃblocknum
+	//è®¾ç½®blocknum
 	SendBuffer[3] = blocknum;
 	SendBuffer[2] = blocknum / 256;
-	//¶ÁÈ¡Êı¾İ²¢Èûµ½packetÀïÃæ,´´½¨Ò»¸ö´óĞ¡ÎªDataPakSizeµÄÊı¾İ°ü
+	//è¯»å–æ•°æ®å¹¶å¡åˆ°packeté‡Œé¢,åˆ›å»ºä¸€ä¸ªå¤§å°ä¸ºDataPakSizeçš„æ•°æ®åŒ…
 	WRQFileS.read(SendBuffer + 4, DataPakSize - 4);
 	int count = WRQFileS.gcount();
 
@@ -473,5 +473,6 @@ int TFTPCLI::SetDataBuffer(int blocknum) {
 	if (count == 0) {
 		return 1;
 	}
+	
 	return 0;
 }
