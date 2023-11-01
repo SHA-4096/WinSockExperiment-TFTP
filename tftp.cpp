@@ -161,24 +161,29 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 			//设置报文
 			blocknum = (u_short(RecvBuffer[3]) % 256) + (u_short(RecvBuffer[2]) % 256) * 256;
 			//cout <<"======" << int(RecvBuffer[2])<<endl;
-			cout << "Got Block " << blocknum << endl;
+			//cout << "Got Block " << blocknum << endl;
 			sprintf(MsgBuf, "Got Block %d", blocknum);
 			LogInfo(MsgBuf);
 			serverAddr.sin_port = recvAddr.sin_port;//设置目的端口为S-TID
 			SetAckBuffer(blocknum);//设置ACK的blocknum
 			//写入文件
 			if (prevBlocknum == blocknum-1) {
-				cout << "Wrote Block " << blocknum << endl;
+				//cout << "Wrote Block " << blocknum << endl;
 				sprintf(MsgBuf,"Wrote Block %d", blocknum);
 				LogInfo(MsgBuf);
 				//计算速度并重置计时器
 				CalcSpeed();
 				SetCurrentTime();
 				//输出速度
-				cout << "Current Speed:"
+				if (!(blocknum % 1000) || GetSpeed() < SPEED_THRESHHOLD) {
+					//控制输出速度的频率
+					system("cls");
+					printf("Current Speed:%lf Bytes/s\n", GetSpeed());
+				}
+				/*cout << "Current Speed:"
 					<< GetSpeed()
 					<< " Bytes/s"
-					<< endl;
+					<< endl;*/
 				RRQFileS.write(RecvBuffer + 4, RecvBufLen - 4);
 				prevBlocknum = blocknum;
 
@@ -248,7 +253,7 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) 
 		case ACK:
 			blocknum = (u_short(RecvBuffer[3]) % 256) + (u_short(RecvBuffer[2]) % 256) * 256;
 			//TODO 修复报文超过128个的情况
-			cout << "Got ACK for block" << blocknum << endl;
+			//cout << "Got ACK for block" << blocknum << endl;
 			sprintf(MsgBuf, "Got ACK for block %d", blocknum);
 			LogInfo(MsgBuf);
 			serverAddr.sin_port = recvAddr.sin_port;//设置目的端口为S-TID
@@ -260,10 +265,16 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) 
 				CalcSpeed();
 				SetCurrentTime();
 				//输出速度
-				cout << "Current Speed:"
+				if (!(blocknum % 1000)||GetSpeed()<SPEED_THRESHHOLD) {
+					//控制输出速度的频率
+					system("cls");
+					printf("Current Speed:%lf Bytes/s\n", GetSpeed());
+				}
+				
+/*				cout << "Current Speed:"
 					<< GetSpeed()
 					<< " Bytes/s"
-					<< endl;
+					<< endl;*/
 			}
 			else {
 				//收到了无效的ACK，直接跳过
@@ -329,9 +340,11 @@ int TFTPCLI::InitLog(char filename[]) {
 
 int TFTPCLI::LogInfo(char* msg) {
 	time(&LogTimeObj);
+	char* time = ctime(&LogTimeObj);
+	time[strlen(time) - 1] = 0;
 	LogFileS << "[Info]"
 		<< "["
-		<< ctime(&LogTimeObj)
+		<< time
 		<< "]"
 		<< msg
 		<< endl;
@@ -340,9 +353,11 @@ int TFTPCLI::LogInfo(char* msg) {
 
 int TFTPCLI::LogWarn(char* msg) {
 	time(&LogTimeObj);
+	char* time = ctime(&LogTimeObj);
+	time[strlen(time) - 1] = 0;
 	LogFileS << "[Warn]"
 		<<"["
-		<< ctime(&LogTimeObj)
+		<< time
 		<<"]"
 		<< msg
 		<< endl;
@@ -351,9 +366,11 @@ int TFTPCLI::LogWarn(char* msg) {
 
 int TFTPCLI::LogFatal(char* msg) {
 	time(&LogTimeObj);
+	char* time = ctime(&LogTimeObj);
+	time[strlen(time) - 1] = 0;
 	LogFileS << "[Fatal]"
 		<< "["
-		<< ctime(&LogTimeObj)
+		<< time
 		<< "]"
 		<< msg
 		<< endl;

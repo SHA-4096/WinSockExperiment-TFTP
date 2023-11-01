@@ -24,7 +24,7 @@ using namespace std;
 #define TIMEOUT_SEC 10
 #define BUFFER_SIZE 560
 #define DataPakSize 516
-
+#define SPEED_THRESHHOLD 5000
 #define MAX_RETRIES 10 //设置最大重传次数为10
 
 class TFTPCLI {
