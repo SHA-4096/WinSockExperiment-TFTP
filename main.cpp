@@ -6,6 +6,7 @@
 
 int taskCount;
 void MessageLoop();
+void ResetTasks();
 
 
 struct MultiTasking {
@@ -130,7 +131,7 @@ int main() {
 				}
 			}
 			MessageLoop();
-			taskCount = 0;
+			ResetTasks();
 		}
 		else if (input == "tasks") {
 			for (int i = 0; i < taskCount; ++i) {
@@ -184,20 +185,33 @@ int main() {
 			strcpy(TSKS[0].filename,filename);
 			strcpy(TSKS[0].host, host);
 			TSKS[0].port = port;
-
-			threads[0] = thread(&TFTPCLI::GetFileFromRemote, TSKS[0].cli, TSKS[0].host, TSKS[0].filename, TSKS[0].port, TSKS[0].mode);
+			TSKS[0].mode = mode;
+			TSKS[0].cli = new(TFTPCLI);
+			TSKS[0].type = WRITE_REQUEST;
+			threads[0] = thread(&TFTPCLI::PutFileToRemote, TSKS[0].cli, TSKS[0].host, TSKS[0].filename, TSKS[0].port, TSKS[0].mode);
 			threads[0].detach();
 			MessageLoop();
-			taskCount = 0;
+			ResetTasks();
 		}
 		else if (input == "R") {
+			taskCount = 1;
 			if (!setflag) {
 				cout << "Server not set,please set server first!" << endl;
 				continue;
 			}
 			cout << "Input Filename:";
 			cin >> filename;
-			cli->GetFileFromRemote(host, filename, port, mode);
+			strcpy(TSKS[0].filename, filename);
+			strcpy(TSKS[0].host, host);
+			TSKS[0].port = port;
+			TSKS[0].mode = mode;
+			TSKS[0].type = READ_REQUEST;
+			TSKS[0].cli = new(TFTPCLI);
+			threads[0] = thread(&TFTPCLI::PutFileToRemote, TSKS[0].cli, TSKS[0].host, TSKS[0].filename, TSKS[0].port, TSKS[0].mode);
+			threads[0].detach();
+			MessageLoop();
+			ResetTasks();
+
 		}
 		else{
 			cout << "Invalid input!\n";
@@ -231,4 +245,14 @@ void MessageLoop() {
 		}
 		Sleep(1000);//每秒刷新一次显示
 	}
+}
+
+/// <summary>
+/// 删除所有实例化的对象并把taskCount置0
+/// </summary>
+void ResetTasks() {
+	for (int i = 0; i < taskCount; ++i) {
+		delete TSKS[i].cli;
+	}
+	taskCount = 0;
 }

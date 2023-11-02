@@ -170,7 +170,7 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 			serverAddr.sin_port = recvAddr.sin_port;//设置目的端口为S-TID
 			SetAckBuffer(blocknum);//设置ACK的blocknum
 			//写入文件
-			if (prevBlocknum%65535 == (blocknum+65534)%65535) {
+			if (prevBlocknum%65536 == (blocknum+65535)%65536) {
 				//cout << "Wrote Block " << blocknum << endl;
 				sprintf(MsgBuf,"Wrote Block %d", blocknum) ;
 				LogInfo(MsgBuf);
@@ -226,10 +226,6 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) 
 	TFTPState = STATE_RUNNING;
 	
 	CreateSocket();
-	//创建一个新的控制台
-	HANDLE hOutputHandle = GetStdHandle(STD_OUTPUT_HANDLE);
-	DWORD nRet = 0;
-	TCHAR buf[100];//控制台输出的缓冲区
 	//设置socket超时时间
 	int timeout = 1000;
 	SetSocketTimeout(&timeout, &timeout);
@@ -251,7 +247,7 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) 
 				sprintf(MsgBuf, "Failed to receive packet,retrying %d\n", retries);
 				LogWarn(MsgBuf);
 				//控制台输出
-				WriteConsole(hOutputHandle, MsgBuf, strlen(MsgBuf), &nRet, NULL);
+				printf(MsgBuf);
 				SendBufferToServer();//出错则重传
 				retries++;
 			}
@@ -278,10 +274,10 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) 
 			blocknum = (u_short(RecvBuffer[3]) % 256) + (u_short(RecvBuffer[2]) % 256) * 256;
 			//TODO 修复报文超过128个的情况 Done
 			//cout << "Got ACK for block" << blocknum << endl;
-			sprintf(MsgBuf, "Got ACK for block %d", blocknum + (dataPacketBlock / 65535) * 65535);
+			sprintf(MsgBuf, "Got ACK for block %d", blocknum);
 			LogInfo(MsgBuf);
 			serverAddr.sin_port = recvAddr.sin_port;//设置目的端口为S-TID
-			if (blocknum% 65535 == dataPacketBlock% 65535) {
+			if (blocknum% 65536 == dataPacketBlock% 65536) {
 				//收到了上一个包的ACK则继续发送
 				dataPacketBlock++;
 				pakStatus = SetDataBuffer(dataPacketBlock);
@@ -306,10 +302,6 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) 
 			}
 			break;
 		case TFTP_ERROR:
-			cout << "Server reported Error!" 
-				<<"code="
-				<<int(RecvBuffer[3])
-				<< endl;
 			sprintf(MsgBuf, "Server reported error,code=%d", int(RecvBuffer[3]));
 			LogFatal(MsgBuf);
 			TFTPState = STATE_FAIL;
