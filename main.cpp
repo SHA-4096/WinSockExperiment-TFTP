@@ -3,7 +3,10 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS 1
 
 #define TASK_NUM 100
+
 int taskCount;
+void MessageLoop();
+
 
 struct MultiTasking {
 	int type;
@@ -117,15 +120,16 @@ int main() {
 			for (int i = 0; i < taskCount; ++i) {
 				if (TSKS[i].type == READ_REQUEST) {
 					threads[i] = thread(&TFTPCLI::GetFileFromRemote, TSKS[i].cli, TSKS[i].host, TSKS[i].filename, TSKS[i].port, TSKS[i].mode);
-					threads[i].join();
+					threads[i].detach();
 					cout << "Started Thread " << i << endl;
 				}
 				else {
 					threads[i] = thread(&TFTPCLI::PutFileToRemote, TSKS[i].cli, TSKS[i].host, TSKS[i].filename, TSKS[i].port, TSKS[i].mode);
-					threads[i].join();
+					threads[i].detach();
 					cout << "Started Thread " << i << endl;
 				}
 			}
+			MessageLoop();
 			taskCount = 0;
 		}
 		else if (input == "tasks") {
@@ -170,14 +174,21 @@ int main() {
 			
 		}
 		else if (input == "W") {
+			taskCount = 1;//只创建一个task
 			if (!setflag) {
 				cout << "Server not set,please set server first!" << endl;
 				continue;
 			}
 			cout << "Input Filename:";
 			cin >> filename;
-			cli->PutFileToRemote(host, filename, port, mode);
+			strcpy(TSKS[0].filename,filename);
+			strcpy(TSKS[0].host, host);
+			TSKS[0].port = port;
 
+			threads[0] = thread(&TFTPCLI::GetFileFromRemote, TSKS[0].cli, TSKS[0].host, TSKS[0].filename, TSKS[0].port, TSKS[0].mode);
+			threads[0].detach();
+			MessageLoop();
+			taskCount = 0;
 		}
 		else if (input == "R") {
 			if (!setflag) {
@@ -195,4 +206,29 @@ int main() {
 		
 	}
 	return  0;
+}
+
+void MessageLoop() {
+	for (;;) {
+		bool allFin = true;
+		system("cls");
+		for (int i = 0; i < taskCount; ++i) {
+			switch (TSKS[i].cli->TFTPState) {
+			case STATE_RUNNING:
+				allFin = false;
+				printf("Task#%d[%s]: %s Speed:%lf Bytes/s\n", i,(TSKS[i].type == WRITE_REQUEST ? "WRQ":"RRQ"), TSKS[i].filename, TSKS[i].cli->GetSpeed());
+				break;
+			case STATE_SUCCESS:
+				printf("Task#%d[%s]: %s Finished!\n", i, (TSKS[i].type == WRITE_REQUEST ? "WRQ" : "RRQ"), TSKS[i].filename);
+				break;
+			case STATE_FAIL:
+				printf("Task#%d[%s]: %s Failed!Last Error Message is: %s\n", i, (TSKS[i].type == WRITE_REQUEST ? "WRQ" : "RRQ"), TSKS[i].filename,TSKS[i].cli->MsgBuf);
+				break;
+			}
+		}
+		if (allFin) {
+			break;
+		}
+		Sleep(1000);//每秒刷新一次显示
+	}
 }

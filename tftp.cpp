@@ -115,6 +115,7 @@ int TFTPCLI::RecvFromServer() {
 /// <param name="port">目标端口</param>
 /// <returns>0:success !0:fail</returns>
 int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode) {
+	TFTPState = STATE_RUNNING;
 	CreateSocket();//创建socket
 	int timeout = 1000;//设置socket超时时间
 	SetSocketTimeout(&timeout,&timeout );
@@ -139,6 +140,7 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 			}
 			else if (state == 1) {
 				//服务端已经重置连接了
+				TFTPState = STATE_FAIL;
 				return -1;
 			}else {
 				break;
@@ -147,6 +149,7 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 		if (retries == MAX_RETRIES) {
 			cout << "Failed after " << MAX_RETRIES << " retries, exiting" << endl;
 			sprintf(MsgBuf,"Failed after %d retries,exiting",MAX_RETRIES);
+			TFTPState = STATE_FAIL;
 			LogFatal(MsgBuf);
 			return -1;
 		}
@@ -177,8 +180,8 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 				//输出速度
 				if (!(blocknum % 1000) || GetSpeed() < SPEED_THRESHHOLD) {
 					//控制输出速度的频率
-					system("cls");
-					printf("Current Speed:%lf Bytes/s\n", GetSpeed());
+					//system("cls");
+					//printf("Current Speed:%lf Bytes/s\n", GetSpeed());
 				}
 				/*cout << "Current Speed:"
 					<< GetSpeed()
@@ -195,11 +198,20 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 				SendBufferToServer();//发送ACK
 				RRQFileS.close();//关闭文件
 				CloseSocket();//关闭连接
+				TFTPState = STATE_SUCCESS;
 				return 0;
 			}
 			break;
 		case TFTP_ERROR:
 			errorcode = RecvBuffer[3];
+			cout << "Server reported Error!"
+				<< "code="
+				<< int(RecvBuffer[3])
+				<< endl;
+			sprintf(MsgBuf, "Server reported error,code=%d", errorcode);
+			LogFatal(MsgBuf);
+			TFTPState = STATE_FAIL;
+			return -1;
 			break;
 		}
 
@@ -211,8 +223,15 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 }
 
 int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) {
+	TFTPState = STATE_RUNNING;
+	
 	CreateSocket();
-	int timeout = 1000;//设置socket超时时间
+	//创建一个新的控制台
+	HANDLE hOutputHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+	DWORD nRet = 0;
+	TCHAR buf[100];//控制台输出的缓冲区
+	//设置socket超时时间
+	int timeout = 1000;
 	SetSocketTimeout(&timeout, &timeout);
 
 	SetServerAddr(host, port);
@@ -227,14 +246,18 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) 
 		while (retries < MAX_RETRIES) {
 			int state = RecvFromServer();//从server获取数据
 			if (state < 0) {
-				cout << "Failed to receive packet,retrying " << retries << endl;
+				//cout << "Failed to receive packet,retrying " << retries << endl;
+				//日志
 				sprintf(MsgBuf, "Failed to receive packet,retrying %d\n", retries);
 				LogWarn(MsgBuf);
+				//控制台输出
+				WriteConsole(hOutputHandle, MsgBuf, strlen(MsgBuf), &nRet, NULL);
 				SendBufferToServer();//出错则重传
 				retries++;
 			}
 			else if (state == 1) {
 				//服务端已经重置连接了
+				TFTPState = STATE_FAIL;
 				return -1;
 			}else {
 				break;
@@ -244,6 +267,7 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) 
 			cout << "Failed after " << MAX_RETRIES << " retries, exiting" << endl;
 			sprintf(MsgBuf, "Failed after %d retries,exiting", MAX_RETRIES);
 			LogFatal(MsgBuf);
+			TFTPState = STATE_FAIL;
 			return -1;
 		}
 
@@ -267,8 +291,8 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) 
 				//输出速度
 				if (!(blocknum % 1000)||GetSpeed()<SPEED_THRESHHOLD) {
 					//控制输出速度的频率
-					system("cls");
-					printf("Current Speed:%lf Bytes/s\n", GetSpeed());
+					//system("cls");
+					//printf("Current Speed:%lf Bytes/s\n", GetSpeed());
 				}
 				
 /*				cout << "Current Speed:"
@@ -288,6 +312,7 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) 
 				<< endl;
 			sprintf(MsgBuf, "Server reported error,code=%d", int(RecvBuffer[3]));
 			LogFatal(MsgBuf);
+			TFTPState = STATE_FAIL;
 			return -1;
 			break;
 		}
@@ -300,6 +325,7 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) 
 			//TODO 等待最后的ACK，否则重传
 			CloseSocket();
 			WRQFileS.close();
+			TFTPState = STATE_SUCCESS;
 			return 0;
 		}
 		//Sleep(500);

@@ -27,6 +27,10 @@ using namespace std;
 #define SPEED_THRESHHOLD 5000
 #define MAX_RETRIES 10 //设置最大重传次数为10
 
+#define STATE_SUCCESS 0
+#define STATE_FAIL 1
+#define STATE_RUNNING 2
+
 class TFTPCLI {
 public:
 	WSADATA wsaData;
@@ -36,6 +40,8 @@ public:
 	int GetFileFromRemote(char* host, char* filename, u_short port,int mode);
 	int PutFileToRemote(char* host, char* filename, u_short port, int mode);
 	double GetSpeed();
+	int TFTPState;//记录当前的状态
+	char MsgBuf[BUFFER_SIZE];//当前日志的缓冲区
 private:
 	//缓冲区设置相关
 	char SendBuffer[BUFFER_SIZE];
@@ -68,7 +74,6 @@ private:
 
 	//日志相关
 	fstream LogFileS;
-	char MsgBuf[BUFFER_SIZE];
 	int LogFatal(char* msg);
 	int LogInfo(char* msg);
 	int LogWarn(char* msg);
