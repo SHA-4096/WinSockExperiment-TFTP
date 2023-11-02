@@ -118,6 +118,9 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 	STID = -1;//标记STID为未设置
 	TFTPState = STATE_RUNNING;
 	CreateSocket();//创建socket
+	char logPath[100];
+	sprintf(logPath, "log.log");
+	InitLog(logPath);
 	int timeout = 1000;//设置socket超时时间
 	SetSocketTimeout(&timeout,&timeout );
 	SetServerAddr(host, port);
@@ -174,14 +177,14 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 				invalidPkt = true;
 				continue;
 			}
-			sprintf(MsgBuf, "Got Block %d", blocknum);
-			LogInfo(MsgBuf);
+			//sprintf(MsgBuf, "Got Block %d", blocknum);
+			//LogInfo(MsgBuf);
 			SetAckBuffer(blocknum);//设置ACK的blocknum
 			//写入文件
 			if (prevBlocknum%65536 == (blocknum+65535)%65536) {
 				//cout << "Wrote Block " << blocknum << endl;
-				sprintf(MsgBuf,"Wrote Block %d", blocknum) ;
-				LogInfo(MsgBuf);
+				//sprintf(MsgBuf,"Wrote Block %d", blocknum) ;
+				//LogInfo(MsgBuf);
 				//计算速度并重置计时器
 				CalcSpeed();
 				SetCurrentTime();
@@ -290,8 +293,8 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) 
 				continue;
 			}
 			
-			sprintf(MsgBuf, "Got ACK for block %d", blocknum);
-			LogInfo(MsgBuf);
+			//sprintf(MsgBuf, "Got ACK for block %d", blocknum);
+			//LogInfo(MsgBuf);
 			if (blocknum% 65536 == dataPacketBlock% 65536) {
 				//收到了上一个包的ACK则继续发送
 				dataPacketBlock++;
@@ -375,12 +378,12 @@ int TFTPCLI::LogInfo(char* msg) {
 	time(&LogTimeObj);
 	char* time = ctime(&LogTimeObj);
 	time[strlen(time) - 1] = 0;
-	/*LogFileS << "[Info]"
+	LogFileS << "[Info]"
 		<< "["
 		<< time
 		<< "]"
 		<< msg
-		<< endl;*/
+		<< endl;
 	return 0;
 }
 
@@ -415,9 +418,10 @@ int TFTPCLI::SetRequestBuffer(int op, int type, char* filename) {
 	memset(SendBuffer, 0, sizeof(SendBuffer));
 	SendBuffer[1] = op;//设置opcode
 	if (op == READ_REQUEST) {
-		cout << "Downloading data:"
-			<< filename
-			<< endl<<"(TFTP)>";
+		sprintf(MsgBuf,"Downloading data:%s\n",filename);
+		cout << MsgBuf;
+		cout << "(TFTP)>";
+		LogInfo(MsgBuf);
 		//打开文件，直到WRQ完成后关闭
 		switch (type) {
 		case MODE_OCTET:
@@ -429,9 +433,9 @@ int TFTPCLI::SetRequestBuffer(int op, int type, char* filename) {
 		}
 	}
 	else if (op == WRITE_REQUEST) {
-		cout << "Uploading data:"
-			<< filename
-			<< endl<<"(TFTP)>";
+		sprintf(MsgBuf, "Uploading data:%s\n(TFTP)>", filename);
+		cout << MsgBuf;
+		LogInfo(MsgBuf);
 		//打开文件，直到RRQ完成后关闭
 		switch (type) {
 		case MODE_OCTET:
@@ -444,7 +448,7 @@ int TFTPCLI::SetRequestBuffer(int op, int type, char* filename) {
 
 	}
 	else {
-		cout << "Not a valid opcode!" << endl;
+		cout << "Not a valid opcode!" << endl; 
 		return -1;
 	}
 	strcpy_s(SendBuffer + OP_LEN, 500, filename);

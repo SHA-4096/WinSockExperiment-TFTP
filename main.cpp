@@ -113,6 +113,7 @@ int main() {
 			cin >> filename;
 			strcpy(TSKS[taskCount].filename, filename);
 			TSKS[taskCount].cli = new(TFTPCLI);
+			TSKS[taskCount].cli->TFTPState = STATE_SET;
 			strcpy(TSKS[taskCount].host, host);
 			TSKS[taskCount].port = port;
 			TSKS[taskCount].mode = mode;
@@ -120,15 +121,19 @@ int main() {
 		}
 		else if (input == "E") {
 			for (int i = 0; i < taskCount; ++i) {
+				if (TSKS[i].cli->TFTPState != STATE_SET) {
+					//已经运行的任务避免重复启动
+					continue;
+				}
 				if (TSKS[i].type == READ_REQUEST) {
 					threads[i] = thread(&TFTPCLI::GetFileFromRemote, TSKS[i].cli, TSKS[i].host, TSKS[i].filename, TSKS[i].port, TSKS[i].mode);
 					threads[i].detach();
-					cout << "Started Thread " << i << endl;
+					MessageLoop();
 				}
 				else {
 					threads[i] = thread(&TFTPCLI::PutFileToRemote, TSKS[i].cli, TSKS[i].host, TSKS[i].filename, TSKS[i].port, TSKS[i].mode);
 					threads[i].detach();
-					cout << "Started Thread " << i << endl;
+					MessageLoop();
 				}
 			}
 		}
@@ -189,6 +194,7 @@ int main() {
 			threads[taskCount] = thread(&TFTPCLI::PutFileToRemote, TSKS[taskCount].cli, TSKS[taskCount].host, TSKS[taskCount].filename, TSKS[taskCount].port, TSKS[taskCount].mode);
 			threads[taskCount].detach();
 			taskCount++;
+			MessageLoop();
 		}
 		else if (input == "R") {
 			if (!setflag) {
@@ -206,7 +212,7 @@ int main() {
 			threads[taskCount] = thread(&TFTPCLI::GetFileFromRemote, TSKS[taskCount].cli, TSKS[taskCount].host, TSKS[taskCount].filename, TSKS[taskCount].port, TSKS[taskCount].mode);
 			threads[taskCount].detach();
 			taskCount++;
-
+			MessageLoop();
 		}
 		else if (input == "I") {
 			MessageLoop();
@@ -221,9 +227,10 @@ int main() {
 }
 
 void MessageLoop() {
-	for (int k = 0;k<10;++k) {//循环10次，显示10秒的信息
+	for (;;) {
 		bool allFin = true;
 		system("cls");
+		printf("TaskState display,press 'c' to acquire commandline\n========================================\n");
 		for (int i = 0; i < taskCount; ++i) {
 			switch (TSKS[i].cli->TFTPState) {
 			case STATE_RUNNING:
@@ -242,6 +249,14 @@ void MessageLoop() {
 			ResetTasks();
 			break;
 		}
+		if (kbhit()) {
+			//输入q退出
+			char t = getch();
+			if (t == 'c') {
+				break;
+			}
+		}
+
 		Sleep(1000);//每秒刷新一次显示
 	}
 }

@@ -8,6 +8,7 @@
 #include<time.h>
 #include<Windows.h>
 #include<chrono>
+#include<conio.h>
 #pragma comment(lib,"ws2_32.lib")
 
 using namespace std;
@@ -30,6 +31,7 @@ using namespace std;
 #define STATE_SUCCESS 0
 #define STATE_FAIL 1
 #define STATE_RUNNING 2
+#define STATE_SET 3
 
 class TFTPCLI {
 public:
