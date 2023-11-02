@@ -49,6 +49,7 @@ int main() {
 		"W : Put file to a remote server\n"
 		"T : Set Multiple Tasks\n"
 		"E : Execute Multiple Tasks\n"
+		"I : Show transmission information\n"
 		"tasks : View tasks\n"
 		"state : See the configuration of current client\n"
 		"help : Get help instructions\n"
@@ -130,8 +131,6 @@ int main() {
 					cout << "Started Thread " << i << endl;
 				}
 			}
-			MessageLoop();
-			ResetTasks();
 		}
 		else if (input == "tasks") {
 			for (int i = 0; i < taskCount; ++i) {
@@ -175,43 +174,42 @@ int main() {
 			
 		}
 		else if (input == "W") {
-			taskCount = 1;//只创建一个task
 			if (!setflag) {
 				cout << "Server not set,please set server first!" << endl;
 				continue;
 			}
 			cout << "Input Filename:";
 			cin >> filename;
-			strcpy(TSKS[0].filename,filename);
-			strcpy(TSKS[0].host, host);
-			TSKS[0].port = port;
-			TSKS[0].mode = mode;
-			TSKS[0].cli = new(TFTPCLI);
-			TSKS[0].type = WRITE_REQUEST;
-			threads[0] = thread(&TFTPCLI::PutFileToRemote, TSKS[0].cli, TSKS[0].host, TSKS[0].filename, TSKS[0].port, TSKS[0].mode);
-			threads[0].detach();
-			MessageLoop();
-			ResetTasks();
+			strcpy(TSKS[taskCount].filename,filename);
+			strcpy(TSKS[taskCount].host, host);
+			TSKS[taskCount].port = port;
+			TSKS[taskCount].mode = mode;
+			TSKS[taskCount].cli = new(TFTPCLI);
+			TSKS[taskCount].type = WRITE_REQUEST;
+			threads[taskCount] = thread(&TFTPCLI::PutFileToRemote, TSKS[taskCount].cli, TSKS[taskCount].host, TSKS[taskCount].filename, TSKS[taskCount].port, TSKS[taskCount].mode);
+			threads[taskCount].detach();
+			taskCount++;
 		}
 		else if (input == "R") {
-			taskCount = 1;
 			if (!setflag) {
 				cout << "Server not set,please set server first!" << endl;
 				continue;
 			}
 			cout << "Input Filename:";
 			cin >> filename;
-			strcpy(TSKS[0].filename, filename);
-			strcpy(TSKS[0].host, host);
-			TSKS[0].port = port;
-			TSKS[0].mode = mode;
-			TSKS[0].type = READ_REQUEST;
-			TSKS[0].cli = new(TFTPCLI);
-			threads[0] = thread(&TFTPCLI::GetFileFromRemote, TSKS[0].cli, TSKS[0].host, TSKS[0].filename, TSKS[0].port, TSKS[0].mode);
-			threads[0].detach();
-			MessageLoop();
-			ResetTasks();
+			strcpy(TSKS[taskCount].filename, filename);
+			strcpy(TSKS[taskCount].host, host);
+			TSKS[taskCount].port = port;
+			TSKS[taskCount].mode = mode;
+			TSKS[taskCount].type = READ_REQUEST;
+			TSKS[taskCount].cli = new(TFTPCLI);
+			threads[taskCount] = thread(&TFTPCLI::GetFileFromRemote, TSKS[taskCount].cli, TSKS[taskCount].host, TSKS[taskCount].filename, TSKS[taskCount].port, TSKS[taskCount].mode);
+			threads[taskCount].detach();
+			taskCount++;
 
+		}
+		else if (input == "I") {
+			MessageLoop();
 		}
 		else{
 			cout << "Invalid input!\n";
@@ -223,7 +221,7 @@ int main() {
 }
 
 void MessageLoop() {
-	for (;;) {
+	for (int k = 0;k<10;++k) {//循环10次，显示10秒的信息
 		bool allFin = true;
 		system("cls");
 		for (int i = 0; i < taskCount; ++i) {
@@ -241,6 +239,7 @@ void MessageLoop() {
 			}
 		}
 		if (allFin) {
+			ResetTasks();
 			break;
 		}
 		Sleep(1000);//每秒刷新一次显示

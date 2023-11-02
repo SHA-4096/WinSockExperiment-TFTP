@@ -34,7 +34,7 @@ int TFTPCLI::CreateSocket() {
 		perror("Create Socket Failed");
 		return -1;
 	}
-	cout << "Create Socket Success" << endl;
+	cout << "Create Socket Success"  << endl;
 	return 0;
 }
 
@@ -65,7 +65,7 @@ int TFTPCLI::SendBufferToServer() {
 	int bytesSent = sendto(clientSocketFd, SendBuffer, SendBufLen, 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
 	int err = WSAGetLastError();
 	if (bytesSent < 0) {
-		cout << "Error ocured while sending packet,code=" << err << endl;
+		//cout << "Error ocured while sending packet,code=" << err << endl;
 		sprintf(MsgBuf, "Error ocured while sending packet,code=%d", err);
 		LogFatal(MsgBuf);
 		return -1;
@@ -91,12 +91,12 @@ int TFTPCLI::RecvFromServer() {
 	int err = WSAGetLastError();
 	if (bytesrcv < 0) {
 		if (err == 10054) {
-			cout << "Got RST from server" << endl;
+			//cout << "Got RST from server" << endl;
 			sprintf(MsgBuf,"Got RST from server\n");
 			LogFatal(MsgBuf);
 			return 1;
 		}
-		cout << "Error ocured while receving packet/server timed out,code=" << err << endl;
+		//cout << "Error ocured while receving packet/server timed out,code=" << err << endl;
 		sprintf(MsgBuf, "Error  / server timed out, code = %d" ,err );
 		LogWarn(MsgBuf);
 
@@ -133,7 +133,7 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 		while (retries < MAX_RETRIES) {
 			int state = RecvFromServer();//从server获取数据
 			if (state < 0) {
-				cout << "Failed to receive packet,retrying " << retries << endl;
+				//cout << "Failed to receive packet,retrying " << retries << endl;
 				sprintf(MsgBuf,"Failed to receive packet,retrying %d\n", retries);
 				LogWarn(MsgBuf);
 				SendBufferToServer();//出错则重传
@@ -148,7 +148,7 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 			}
 		}
 		if (retries == MAX_RETRIES) {
-			cout << "Failed after " << MAX_RETRIES << " retries, exiting" << endl;
+			//cout << "Failed after " << MAX_RETRIES << " retries, exiting" << endl;
 			sprintf(MsgBuf,"Failed after %d retries,exiting",MAX_RETRIES);
 			TFTPState = STATE_FAIL;
 			LogFatal(MsgBuf);
@@ -200,7 +200,7 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 
 			}
 			if (RecvBufLen < DataPakSize) {
-				cout << "Finished Receving Packet!"<<endl;
+				//cout << "Finished Receving Packet!"<<endl;
 				sprintf(MsgBuf, "Finished Receving Packet!");
 				LogInfo(MsgBuf);
 				SendBufferToServer();//发送ACK
@@ -212,10 +212,10 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 			break;
 		case TFTP_ERROR:
 			errorcode = RecvBuffer[3];
-			cout << "Server reported Error!"
+			/*cout << "Server reported Error!"
 				<< "code="
 				<< int(RecvBuffer[3])
-				<< endl;
+				<< endl;*/
 			sprintf(MsgBuf, "Server reported error,code=%d", errorcode);
 			LogFatal(MsgBuf);
 			TFTPState = STATE_FAIL;
@@ -268,7 +268,7 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) 
 			}
 		}
 		if (retries == MAX_RETRIES) {
-			cout << "Failed after " << MAX_RETRIES << " retries, exiting" << endl;
+			//cout << "Failed after " << MAX_RETRIES << " retries, exiting" << endl;
 			sprintf(MsgBuf, "Failed after %d retries,exiting", MAX_RETRIES);
 			LogFatal(MsgBuf);
 			TFTPState = STATE_FAIL;
@@ -326,7 +326,7 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) 
 
 		if (pakStatus == 1) {
 			//数据包发送完毕
-			cout << "Finished Uploading Data" << endl;
+			//cout << "Finished Uploading Data" << endl;
 			sprintf(MsgBuf, "Finished Uploading Data", retries);
 			LogInfo(MsgBuf);
 			//TODO 等待最后的ACK，否则重传
@@ -417,7 +417,7 @@ int TFTPCLI::SetRequestBuffer(int op, int type, char* filename) {
 	if (op == READ_REQUEST) {
 		cout << "Downloading data:"
 			<< filename
-			<< endl;
+			<< endl<<"(TFTP)>";
 		//打开文件，直到WRQ完成后关闭
 		switch (type) {
 		case MODE_OCTET:
@@ -431,7 +431,7 @@ int TFTPCLI::SetRequestBuffer(int op, int type, char* filename) {
 	else if (op == WRITE_REQUEST) {
 		cout << "Uploading data:"
 			<< filename
-			<< endl;
+			<< endl<<"(TFTP)>";
 		//打开文件，直到RRQ完成后关闭
 		switch (type) {
 		case MODE_OCTET:
