@@ -115,6 +115,7 @@ int TFTPCLI::RecvFromServer() {
 /// <param name="port">目标端口</param>
 /// <returns>0:success !0:fail</returns>
 int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode) {
+	STID = -1;//标记STID为未设置
 	TFTPState = STATE_RUNNING;
 	CreateSocket();//创建socket
 	int timeout = 1000;//设置socket超时时间
@@ -156,7 +157,7 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 
 		//成功接收到数据包后执行
 		int op = RecvBuffer[1];
-
+		bool invalidPkt = false;
 		switch (op) {
 		case DATA:
 			//通过检查收到的报文长度检查传输是否完成
@@ -165,9 +166,16 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 			blocknum = (u_short(RecvBuffer[3]) % 256) + (u_short(RecvBuffer[2]) % 256) * 256;
 			//cout <<"======" << int(RecvBuffer[2])<<endl;
 			//cout << "Got Block " << blocknum << endl;
+			if (STID == -1) {
+				serverAddr.sin_port = recvAddr.sin_port;//设置目的端口为S-TID
+				STID = recvAddr.sin_port;
+			}
+			if (recvAddr.sin_port != STID) {//不是发送给这个对象的数据包
+				invalidPkt = true;
+				continue;
+			}
 			sprintf(MsgBuf, "Got Block %d", blocknum);
 			LogInfo(MsgBuf);
-			serverAddr.sin_port = recvAddr.sin_port;//设置目的端口为S-TID
 			SetAckBuffer(blocknum);//设置ACK的blocknum
 			//写入文件
 			if (prevBlocknum%65536 == (blocknum+65535)%65536) {
@@ -223,6 +231,7 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 }
 
 int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) {
+	STID = -1;//标记S-TID为未设置
 	TFTPState = STATE_RUNNING;
 	
 	CreateSocket();
@@ -233,7 +242,6 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) 
 	SetServerAddr(host, port);
 	SetRequestBuffer(WRITE_REQUEST, mode, filename);
 	SendBufferToServer();
-	bool firstResp = false;//标记是否为第一次回应，是的话检查TID
 
 	int dataPacketBlock = 0,pakStatus=0;//pakStatus标记当前数据包是否为最后一个
 	for (;;) {
@@ -274,9 +282,16 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) 
 			blocknum = (u_short(RecvBuffer[3]) % 256) + (u_short(RecvBuffer[2]) % 256) * 256;
 			//TODO 修复报文超过128个的情况 Done
 			//cout << "Got ACK for block" << blocknum << endl;
+			if (STID ==-1 ) {
+				serverAddr.sin_port = recvAddr.sin_port;//设置目的端口为S-TID
+				STID = recvAddr.sin_port;
+			}
+			if (recvAddr.sin_port != STID) {//不是发送给这个对象的数据包
+				continue;
+			}
+			
 			sprintf(MsgBuf, "Got ACK for block %d", blocknum);
 			LogInfo(MsgBuf);
-			serverAddr.sin_port = recvAddr.sin_port;//设置目的端口为S-TID
 			if (blocknum% 65536 == dataPacketBlock% 65536) {
 				//收到了上一个包的ACK则继续发送
 				dataPacketBlock++;

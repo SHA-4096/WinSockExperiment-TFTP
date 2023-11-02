@@ -207,7 +207,7 @@ int main() {
 			TSKS[0].mode = mode;
 			TSKS[0].type = READ_REQUEST;
 			TSKS[0].cli = new(TFTPCLI);
-			threads[0] = thread(&TFTPCLI::PutFileToRemote, TSKS[0].cli, TSKS[0].host, TSKS[0].filename, TSKS[0].port, TSKS[0].mode);
+			threads[0] = thread(&TFTPCLI::GetFileFromRemote, TSKS[0].cli, TSKS[0].host, TSKS[0].filename, TSKS[0].port, TSKS[0].mode);
 			threads[0].detach();
 			MessageLoop();
 			ResetTasks();

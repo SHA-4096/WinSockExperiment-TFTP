@@ -71,6 +71,7 @@ private:
 	double TransmitSpeed;
 	int SetCurrentTime();
 	int CalcSpeed();
+	int STID;
 
 	//日志相关
 	fstream LogFileS;
