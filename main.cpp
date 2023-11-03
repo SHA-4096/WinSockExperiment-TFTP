@@ -235,7 +235,7 @@ void MessageLoop() {
 			switch (TSKS[i].cli->TFTPState) {
 			case STATE_RUNNING:
 				allFin = false;
-				printf("Task#%d[%s]: %s Speed:%lf Bytes/s\n", i,(TSKS[i].type == WRITE_REQUEST ? "WRQ":"RRQ"), TSKS[i].filename, TSKS[i].cli->GetSpeed());
+				printf("Task#%d[%s]: %s Speed:%lf Bytes/s, status:%s\n", i,(TSKS[i].type == WRITE_REQUEST ? "WRQ":"RRQ"), TSKS[i].filename, TSKS[i].cli->GetSpeed(),TSKS[i].cli->MsgBuf);
 				break;
 			case STATE_SUCCESS:
 				printf("Task#%d[%s]: %s Finished!\n", i, (TSKS[i].type == WRITE_REQUEST ? "WRQ" : "RRQ"), TSKS[i].filename);

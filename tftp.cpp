@@ -92,7 +92,7 @@ int TFTPCLI::RecvFromServer() {
 	if (bytesrcv < 0) {
 		if (err == 10054) {
 			//cout << "Got RST from server" << endl;
-			sprintf(MsgBuf,"Got RST from server\n");
+			sprintf(MsgBuf,"Server's socket is closed\n");
 			LogFatal(MsgBuf);
 			return 1;
 		}
@@ -115,11 +115,13 @@ int TFTPCLI::RecvFromServer() {
 /// <param name="port">目标端口</param>
 /// <returns>0:success !0:fail</returns>
 int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode) {
+	memset(MsgBuf, 0, sizeof(MsgBuf));
+	TransmitSpeed = 0;
 	STID = -1;//标记STID为未设置
 	TFTPState = STATE_RUNNING;
 	CreateSocket();//创建socket
 	char logPath[100];
-	sprintf(logPath, "log.log");
+	sprintf(logPath, "%s.log", filename);
 	InitLog(logPath);
 	int timeout = 1000;//设置socket超时时间
 	SetSocketTimeout(&timeout,&timeout );
@@ -137,7 +139,7 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 			int state = RecvFromServer();//从server获取数据
 			if (state < 0) {
 				//cout << "Failed to receive packet,retrying " << retries << endl;
-				sprintf(MsgBuf,"Failed to receive packet,retrying %d\n", retries);
+				sprintf(MsgBuf,"Failed to receive packet,retrying %d", retries);
 				LogWarn(MsgBuf);
 				SendBufferToServer();//出错则重传
 				retries++;
@@ -177,13 +179,13 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 				invalidPkt = true;
 				continue;
 			}
-			//sprintf(MsgBuf, "Got Block %d", blocknum);
+			sprintf(MsgBuf, "Got Block %d", blocknum);
 			//LogInfo(MsgBuf);
 			SetAckBuffer(blocknum);//设置ACK的blocknum
 			//写入文件
 			if (prevBlocknum%65536 == (blocknum+65535)%65536) {
 				//cout << "Wrote Block " << blocknum << endl;
-				//sprintf(MsgBuf,"Wrote Block %d", blocknum) ;
+				sprintf(MsgBuf,"Wrote Block %d", blocknum) ;
 				//LogInfo(MsgBuf);
 				//计算速度并重置计时器
 				CalcSpeed();
@@ -234,8 +236,10 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 }
 
 int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) {
+	memset(MsgBuf, 0, sizeof(MsgBuf));
 	STID = -1;//标记S-TID为未设置
 	TFTPState = STATE_RUNNING;
+	TransmitSpeed = 0;
 	
 	CreateSocket();
 	//设置socket超时时间
@@ -293,7 +297,7 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) 
 				continue;
 			}
 			
-			//sprintf(MsgBuf, "Got ACK for block %d", blocknum);
+			sprintf(MsgBuf, "Got ACK for block %d", blocknum);
 			//LogInfo(MsgBuf);
 			if (blocknum% 65536 == dataPacketBlock% 65536) {
 				//收到了上一个包的ACK则继续发送
