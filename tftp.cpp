@@ -66,8 +66,8 @@ int TFTPCLI::SendBufferToServer() {
 	int err = WSAGetLastError();
 	if (bytesSent < 0) {
 		//cout << "Error ocured while sending packet,code=" << err << endl;
-		sprintf(MsgBuf, "Error ocured while sending packet,code=%d", err);
-		LogFatal(MsgBuf);
+		sprintf(MsgBuf, "[%s] Error ocured while sending packet,code=%d", err);
+		LogWarn(MsgBuf);
 		return -1;
 	}
 	return 0;
@@ -90,14 +90,14 @@ int TFTPCLI::RecvFromServer() {
 	int bytesrcv = recvfrom(clientSocketFd, RecvBuffer, sizeof(RecvBuffer), 0, (struct sockaddr*)&recvAddr, &addrlen);
 	int err = WSAGetLastError();
 	if (bytesrcv < 0) {
-		if (err == 10054) {
+		if (err == 10054) {  
 			//cout << "Got RST from server" << endl;
-			sprintf(MsgBuf,"Server's socket is closed\n");
+			sprintf(MsgBuf,"[%s] Server's socket is closed",filenameToWrite);
 			LogFatal(MsgBuf);
 			return 1;
 		}
 		//cout << "Error ocured while receving packet/server timed out,code=" << err << endl;
-		sprintf(MsgBuf, "Error  / server timed out, code = %d" ,err );
+		sprintf(MsgBuf, "[%s]Error /server timed out, code = %d" ,filenameToWrite,err );
 		LogWarn(MsgBuf);
 
 		return -1;
@@ -115,13 +115,14 @@ int TFTPCLI::RecvFromServer() {
 /// <param name="port">目标端口</param>
 /// <returns>0:success !0:fail</returns>
 int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode) {
+	strcpy(filenameToWrite, filename);//设置日志里记录的文件名
 	memset(MsgBuf, 0, sizeof(MsgBuf));
 	TransmitSpeed = 0;
 	STID = -1;//标记STID为未设置
-	TFTPState = STATE_RUNNING;
+	TFTPState = STATE_RUNNING;//设置任务状态
 	CreateSocket();//创建socket
-	char logPath[100];
-	sprintf(logPath, "%s.log", filename);
+	//设置日志
+	char logPath[] = "TFTPLog.log";
 	InitLog(logPath);
 	int timeout = 1000;//设置socket超时时间
 	SetSocketTimeout(&timeout,&timeout );
@@ -139,7 +140,7 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 			int state = RecvFromServer();//从server获取数据
 			if (state < 0) {
 				//cout << "Failed to receive packet,retrying " << retries << endl;
-				sprintf(MsgBuf,"Failed to receive packet,retrying %d", retries);
+				sprintf(MsgBuf,"[%s] Failed to receive packet,retrying %d",filenameToWrite, retries);
 				LogWarn(MsgBuf);
 				SendBufferToServer();//出错则重传
 				retries++;
@@ -154,7 +155,7 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 		}
 		if (retries == MAX_RETRIES) {
 			//cout << "Failed after " << MAX_RETRIES << " retries, exiting" << endl;
-			sprintf(MsgBuf,"Failed after %d retries,exiting",MAX_RETRIES);
+			sprintf(MsgBuf,"[%s] Failed after %d retries,exiting",filenameToWrite,MAX_RETRIES);
 			TFTPState = STATE_FAIL;
 			LogFatal(MsgBuf);
 			return -1;
@@ -206,7 +207,7 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 			}
 			if (RecvBufLen < DataPakSize) {
 				//cout << "Finished Receving Packet!"<<endl;
-				sprintf(MsgBuf, "Finished Receving Packet!");
+				sprintf(MsgBuf, "[%s] Finished Receving Packet!",filename);
 				LogInfo(MsgBuf);
 				SendBufferToServer();//发送ACK
 				RRQFileS.close();//关闭文件
@@ -221,7 +222,7 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 				<< "code="
 				<< int(RecvBuffer[3])
 				<< endl;*/
-			sprintf(MsgBuf, "Server reported error,code=%d", errorcode);
+			sprintf(MsgBuf, "[%s] Server reported error,code=%d", filenameToWrite,errorcode);
 			LogFatal(MsgBuf);
 			TFTPState = STATE_FAIL;
 			return -1;
@@ -236,11 +237,15 @@ int TFTPCLI::GetFileFromRemote(char* host, char* filename, u_short port,int mode
 }
 
 int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) {
+	strcpy(filenameToWrite, filename);//设置日志里记录的文件名
 	memset(MsgBuf, 0, sizeof(MsgBuf));
 	STID = -1;//标记S-TID为未设置
-	TFTPState = STATE_RUNNING;
-	TransmitSpeed = 0;
-	
+	TFTPState = STATE_RUNNING;//设置任务状态
+	TransmitSpeed = 0;//设置初始传输时间
+	//设置日志
+	char logPath[] = "TFTPLog.log";
+	InitLog(logPath);
+	//创建socket
 	CreateSocket();
 	//设置socket超时时间
 	int timeout = 1000;
@@ -259,10 +264,8 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) 
 			if (state < 0) {
 				//cout << "Failed to receive packet,retrying " << retries << endl;
 				//日志
-				sprintf(MsgBuf, "Failed to receive packet,retrying %d\n", retries);
+				sprintf(MsgBuf, "[%s] Failed to receive packet,retrying %d", filenameToWrite,retries);
 				LogWarn(MsgBuf);
-				//控制台输出
-				printf(MsgBuf);
 				SendBufferToServer();//出错则重传
 				retries++;
 			}
@@ -276,7 +279,7 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) 
 		}
 		if (retries == MAX_RETRIES) {
 			//cout << "Failed after " << MAX_RETRIES << " retries, exiting" << endl;
-			sprintf(MsgBuf, "Failed after %d retries,exiting", MAX_RETRIES);
+			sprintf(MsgBuf, "[%s] Failed after %d retries,exiting",filenameToWrite, MAX_RETRIES);
 			LogFatal(MsgBuf);
 			TFTPState = STATE_FAIL;
 			return -1;
@@ -324,7 +327,7 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) 
 			}
 			break;
 		case TFTP_ERROR:
-			sprintf(MsgBuf, "Server reported error,code=%d", int(RecvBuffer[3]));
+			sprintf(MsgBuf, "[%s] Server reported error,code=%d",filename ,int(RecvBuffer[3]));
 			LogFatal(MsgBuf);
 			TFTPState = STATE_FAIL;
 			return -1;
@@ -334,7 +337,7 @@ int TFTPCLI::PutFileToRemote(char* host, char* filename, u_short port,int mode) 
 		if (pakStatus == 1) {
 			//数据包发送完毕
 			//cout << "Finished Uploading Data" << endl;
-			sprintf(MsgBuf, "Finished Uploading Data", retries);
+			sprintf(MsgBuf, "[%s] Finished Uploading Data", filename,retries);
 			LogInfo(MsgBuf);
 			//TODO 等待最后的ACK，否则重传
 			CloseSocket();
@@ -374,7 +377,7 @@ double TFTPCLI::GetSpeed() {
 
 
 int TFTPCLI::InitLog(char filename[]) {
-	LogFileS.open(filename, ios::out);//打开文件
+	LogFileS.open(filename, ios::out|ios::app);//打开文件
 	return 0;
 }
 
@@ -382,12 +385,14 @@ int TFTPCLI::LogInfo(char* msg) {
 	time(&LogTimeObj);
 	char* time = ctime(&LogTimeObj);
 	time[strlen(time) - 1] = 0;
+	WriteMtx.lock();//只允许单个线程执行写入操作
 	LogFileS << "[Info]"
 		<< "["
 		<< time
 		<< "]"
 		<< msg
 		<< endl;
+	WriteMtx.unlock();//解除限制
 	return 0;
 }
 
@@ -395,12 +400,14 @@ int TFTPCLI::LogWarn(char* msg) {
 	time(&LogTimeObj);
 	char* time = ctime(&LogTimeObj);
 	time[strlen(time) - 1] = 0;
+	WriteMtx.lock();//只允许单个线程执行写入操作
 	LogFileS << "[Warn]"
 		<<"["
 		<< time
 		<<"]"
 		<< msg
 		<< endl;
+	WriteMtx.unlock();//解除限制
 	return 0;
 }
 
@@ -408,12 +415,14 @@ int TFTPCLI::LogFatal(char* msg) {
 	time(&LogTimeObj);
 	char* time = ctime(&LogTimeObj);
 	time[strlen(time) - 1] = 0;
+	WriteMtx.lock();//只允许单个线程执行写入操作
 	LogFileS << "[Fatal]"
 		<< "["
 		<< time
 		<< "]"
 		<< msg
 		<< endl;
+	WriteMtx.unlock();//解除限制
 	return 0;
 }
 
@@ -422,7 +431,7 @@ int TFTPCLI::SetRequestBuffer(int op, int type, char* filename) {
 	memset(SendBuffer, 0, sizeof(SendBuffer));
 	SendBuffer[1] = op;//设置opcode
 	if (op == READ_REQUEST) {
-		sprintf(MsgBuf,"Downloading data:%s\n",filename);
+		sprintf(MsgBuf,"[%s] Downloading data",filename);
 		cout << MsgBuf;
 		cout << "(TFTP)>";
 		LogInfo(MsgBuf);
@@ -437,8 +446,9 @@ int TFTPCLI::SetRequestBuffer(int op, int type, char* filename) {
 		}
 	}
 	else if (op == WRITE_REQUEST) {
-		sprintf(MsgBuf, "Uploading data:%s\n(TFTP)>", filename);
+		sprintf(MsgBuf, "[%s] Uploading data", filename);
 		cout << MsgBuf;
+		cout << "(TFTP)>";
 		LogInfo(MsgBuf);
 		//打开文件，直到RRQ完成后关闭
 		switch (type) {

@@ -57,7 +57,7 @@ int main() {
 		"=================================================\n";
 	
 	cout << welcome<<endl;
-
+	cout << instruction << endl;
 	TFTPCLI* cli = new(TFTPCLI);
 	cli->InitSocket();
 	char logFileName[] = "log.log"; 
