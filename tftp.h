@@ -9,6 +9,7 @@
 #include<Windows.h>
 #include<chrono>
 #include<conio.h>
+#include<mutex>
 #pragma comment(lib,"ws2_32.lib")
 
 using namespace std;
@@ -67,6 +68,7 @@ private:
 	//文件操作相关
 	ofstream RRQFileS;
 	ifstream WRQFileS;
+	mutex WriteMtx;
 
 	//传输信息相关
 	std::chrono::steady_clock::time_point LastPacketSentTime;//用来记录传输速度
@@ -76,6 +78,7 @@ private:
 	int STID;
 
 	//日志相关
+	char filenameToWrite[100];//用于日志记录的变量
 	fstream LogFileS;
 	int LogFatal(char* msg);
 	int LogInfo(char* msg);
